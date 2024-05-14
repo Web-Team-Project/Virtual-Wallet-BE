@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 
 from .database import Base
 
-
+# da napravim papka models i v neq user.py cards.py i tn
 class User(Base):
     __tablename__ = "users"
 

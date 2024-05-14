@@ -1,8 +1,8 @@
 from typing import List
 from pydantic import BaseModel
-from .models import Card, Transaction
+from app.sql_app.models import Cards, Transactions
 
-
+# da razdelim
 class CardBase(BaseModel):
     number: str
     card_holder: str
@@ -32,7 +32,7 @@ class TransactionBase(BaseModel):
     user_id: int
 
 
-class TransactionCreate(Transaction):
+class TransactionCreate(Transactions):
     pass
 
 
@@ -68,3 +68,8 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

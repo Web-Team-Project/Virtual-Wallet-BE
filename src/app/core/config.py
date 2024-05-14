@@ -1,6 +1,4 @@
-# The reason to ignore "assignment" https://github.com/pydantic/pydantic/issues/3143
-# mypy: disable-error-code="assignment"
-import secrets
+
 from functools import lru_cache
 from typing import List, Optional, Union
 
@@ -20,7 +18,7 @@ class Settings(BaseSettings):
         else:
             return v
 
-    PROJECT_NAME: str = "qc-web"
+    PROJECT_NAME: str = "virtual wallet"
 
     PYDEVD: bool = False
     PYDEVD_PORT: Optional[int] = None
