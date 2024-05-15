@@ -16,5 +16,5 @@ class User(Base):
     email_verified = Column(Boolean)
     locale = Column(String)
 
-    # cards = relationship("Card", back_populates="user")
-    # transactions = relationship("Transaction", back_populates="user")
+    cards = relationship("Card", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user")
