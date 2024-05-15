@@ -1,4 +1,8 @@
+from typing import List
 from pydantic import BaseModel
+from sqlalchemy import Transaction
+
+from app.schemas.card import Card
 
 
 class UserBase(BaseModel):
@@ -18,6 +22,8 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    cards: List[Card] = []
+    transactions: List[Transaction] = []
 
     class Config:
         orm_mode = True
