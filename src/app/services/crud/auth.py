@@ -66,4 +66,4 @@ async def auth_callback(request: Request):
 
 async def logout(request: Request):
     request.session.pop("user", None)
-    return JSONResponse({"message": "Successfully logged out"})
+    return JSONResponse({"message": "Successfully logged out."})
