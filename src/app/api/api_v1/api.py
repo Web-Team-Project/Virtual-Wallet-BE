@@ -17,7 +17,7 @@ api_router.include_router(
 api_router.include_router(
     auth.router,
     prefix="",
-    tags=["Hello World"],
+    tags=["Authentication"],
 )
 
 api_router.include_router(
