@@ -1,5 +1,5 @@
 from app.sql_app.database import Base
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
 
@@ -15,6 +15,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     email_verified = Column(Boolean)
     locale = Column(String)
+    role_id = Column(Integer, ForeignKey("roles.id"))
 
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
+    role = relationship("Role", back_populates="users")
