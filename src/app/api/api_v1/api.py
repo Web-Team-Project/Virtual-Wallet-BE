@@ -2,8 +2,9 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    hello_world, items, test_auth
+    hello_world, items
 )
+from app.services import auth
 
 api_router = APIRouter()
 
@@ -14,7 +15,7 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    test_auth.router,
+    auth.router,
     prefix="",
     tags=["Hello World"],
 )
