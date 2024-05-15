@@ -13,4 +13,5 @@ class Card(Base):
     cvv = Column(String)
     design = Column(String) # Image url
     user_id = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User", back_populates="cards")
+
+    # user = relationship("User", back_populates="cards")

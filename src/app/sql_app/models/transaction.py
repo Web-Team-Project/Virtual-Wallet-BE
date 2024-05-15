@@ -12,5 +12,6 @@ class Transaction(Base):
     category = Column(String)
     card_id = Column(Integer, ForeignKey("cards.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    card = relationship("Card", back_populates="transactions")
-    user = relationship("User", back_populates="transactions")
+
+    # card = relationship("Card", back_populates="transactions")
+    # user = relationship("User", back_populates="transactions")

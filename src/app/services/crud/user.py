@@ -1,7 +1,9 @@
 from fastapi import HTTPException, status
+from app.schemas.user import UserCreate
 from app.sql_app.models.user import User
 from starlette.requests import Request
 from sqlalchemy.orm import Session
+from sql_app.models import User
 
 
 async def get_current_user(request: Request) -> User:
@@ -12,13 +14,13 @@ async def get_current_user(request: Request) -> User:
     return User(**user)
 
 
-def get_user(db: Session, user_id: int):
+async def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
-
-
-def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(User).offset(skip).limit(limit).all()
+async def update_user(db: Session, user_id: int, user: UserCreate):
+    user_db = await get_user(db, user_id)
+    user_data = dict(user.__dict__)
+    db.query(User).filter(User.id == user_id).update(user_data)
+    db.commit()
+    return user_db
