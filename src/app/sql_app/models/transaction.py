@@ -13,6 +13,8 @@ class Transaction(Base):
     is_reccuring = Column(Boolean)
     card_id = Column(Integer, ForeignKey("cards.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"))
 
     card = relationship("Card", back_populates="transactions")
     user = relationship("User", back_populates="transactions")
+    category = relationship("Category", back_populates="transactions")
