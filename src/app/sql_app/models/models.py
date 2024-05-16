@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from app.sql_app.database import Base, engine
+from app.sql_app.database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.models.role import Role
@@ -9,7 +9,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    username = Column(String)
+    sub = Column(String, unique=True, index=True)
+    name = Column(String)
+    given_name = Column(String)
+    family_name = Column(String)
     picture = Column(String)
     email = Column(String, unique=True, index=True)
     email_verified = Column(Boolean)
@@ -26,7 +29,7 @@ class Card(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(String, unique=True, index=True)
     card_holder = Column(String)
-    exp_date = Column(DateTime)
+    exp_date = Column(String) # Maybe switch to DateTime
     cvv = Column(String)
     design = Column(String) # Image url
     user_id = Column(Integer, ForeignKey("users.id"))

@@ -1,7 +1,6 @@
 from typing import List
 from pydantic import BaseModel
-from sqlalchemy import Transaction
-
+from app.schemas.transaction import Transaction
 from app.schemas.card import Card
 
 
