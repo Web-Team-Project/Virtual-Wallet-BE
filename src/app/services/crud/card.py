@@ -20,8 +20,7 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: int):
 
 
 async def read_card(db: AsyncSession, card_id: int):
-    stmt = select(Card).where(Card.id == card_id)
-    result = await db.execute(stmt)
+    result = await db.execute(select(Card).where(Card.id == card_id))
     db_card = result.scalars().first()
     if db_card is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
@@ -30,8 +29,7 @@ async def read_card(db: AsyncSession, card_id: int):
 
 
 async def update_card(db: AsyncSession, card_id: int, card: CardCreate, user_id: int):
-    stmt = select(Card).where(Card.id == card_id, Card.user_id == user_id)
-    result = await db.execute(stmt)
+    result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if not db_card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
@@ -47,8 +45,7 @@ async def update_card(db: AsyncSession, card_id: int, card: CardCreate, user_id:
 
 
 async def delete_card(db: AsyncSession, card_id: int, user_id: int):
-    stmt = select(Card).where(Card.id == card_id, Card.user_id == user_id)
-    result = await db.execute(stmt)
+    result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if db_card is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
