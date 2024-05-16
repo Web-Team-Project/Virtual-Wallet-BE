@@ -1,5 +1,5 @@
 from enum import Enum
-from app.sql_app.database import Base
+from app.sql_app.database import Base, engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.models.role import Role
@@ -62,3 +62,6 @@ class Category(Base):
     name = Column(String, unique=True)
 
     transactions = relationship("Transaction", back_populates="category")
+
+
+Base.metadata.create_all(bind=engine)
