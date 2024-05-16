@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
-from app.sql_app.models.user import User
+from app.sql_app.models.models import User
 from app.services.crud.user import get_current_user
 from app.services.crud.auth import login as _login, auth_callback as _auth_callback, logout as _logout
 

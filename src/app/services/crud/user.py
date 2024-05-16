@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from app.sql_app.models.user import User
+from app.sql_app.models.models import User
 from starlette.requests import Request
 from sqlalchemy.orm import Session
 

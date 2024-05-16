@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.services.crud.user import get_current_user
 from app.sql_app.database import get_db
 from app.services.crud.card import create_card as _create_card, delete_card as _delete_card
-from app.sql_app.models.user import User
+from app.sql_app.models.models import User
 
 
 router = APIRouter()

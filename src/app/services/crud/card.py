@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.schemas.card import CardCreate
-from app.sql_app.models.card import Card
+from app.sql_app.models.models import Card
 
 
 async def create_card(db: Session, card: CardCreate, user_id: int):
