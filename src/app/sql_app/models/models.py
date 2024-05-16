@@ -8,7 +8,7 @@ from app.sql_app.models.role import Role
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True) #uuid
     sub = Column(String, unique=True, index=True)
     name = Column(String)
     given_name = Column(String)
@@ -26,7 +26,7 @@ class User(Base):
 class Card(Base):
     __tablename__ = "cards"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True) ##uuid
     number = Column(String, unique=True, index=True)
     card_holder = Column(String)
     exp_date = Column(String) # Maybe switch to DateTime
@@ -41,11 +41,11 @@ class Card(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True) ## UUid
     amount = Column(Integer)
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
-    is_reccuring = Column(Boolean)
+    is_recurring = Column(Boolean)
     card_id = Column(Integer, ForeignKey("cards.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     category_id = Column(Integer, ForeignKey("categories.id"))

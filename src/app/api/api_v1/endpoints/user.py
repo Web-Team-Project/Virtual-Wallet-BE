@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.services.crud.user import get_current_user, update_user_role as _update_user_role
 from app.sql_app.database import get_db
-from app.sql_app.models.user import User
+from app.sql_app.models.models import User
 from sqlalchemy.orm import Session
 
 
