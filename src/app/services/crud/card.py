@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+
 async def create_card(db: AsyncSession, card: CardCreate, user_id: int):
     db_card = Card(number=card.number, 
                    card_holder=card.card_holder, 

@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
-from app.sql_app.database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
-from app.sql_app.models.role import Role
+from app.sql_app.database import Base
+from .models import Role
 
 
 class User(Base):
@@ -18,7 +18,6 @@ class User(Base):
     email_verified = Column(Boolean)
     locale = Column(String)
     role = Column(Enum(Role), default="user")
-    # gmail, fb , by default google, if from google email + username etc, password if from google emtpy string ala bala
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
 
@@ -29,7 +28,7 @@ class Card(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(String, unique=True, index=True)
     card_holder = Column(String)
-    exp_date = Column(String) # Maybe switch to DateTime
+    exp_date = Column(DateTime)
     cvv = Column(String)
     design = Column(String) # Image url
     user_id = Column(Integer, ForeignKey("users.id"))
