@@ -1,4 +1,4 @@
-from enum import Enum
+from sqlalchemy import create_engine
 from app.sql_app.database import Base, engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
@@ -16,8 +16,6 @@ class User(Base):
     locale = Column(String)
     role = Column(Enum(Role), default="user")
     # gmail, fb , by default google, if from google email + username etc, password if from google emtpy string ala bala
-
-
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
 
@@ -63,4 +61,6 @@ class Category(Base):
     transactions = relationship("Transaction", back_populates="category")
 
 
-Base.metadata.create_all(bind=engine)
+SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
+sync_engine = create_engine(SYNC_DATABASE_URL)
+Base.metadata.create_all(bind=sync_engine)

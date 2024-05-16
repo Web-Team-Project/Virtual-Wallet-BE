@@ -1,20 +1,17 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:N*UeF^3:wEp)ivD@localhost:5432/virtual-wallet-db"
+DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/virtual-wallet-db"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with async_session() as session:
+        yield session
 
 
 Base = declarative_base()

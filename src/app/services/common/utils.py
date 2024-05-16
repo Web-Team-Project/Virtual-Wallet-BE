@@ -2,7 +2,7 @@ from typing import Callable, Any
 from fastapi.responses import JSONResponse
 from fastapi import status
 import logging
-from response import WebErrorResponse
+from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
