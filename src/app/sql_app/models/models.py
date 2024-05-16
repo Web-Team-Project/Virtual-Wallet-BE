@@ -9,15 +9,14 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    sub = Column(String, unique=True, index=True)
-    name = Column(String)
-    given_name = Column(String)
-    family_name = Column(String)
+    username = Column(String)
     picture = Column(String)
     email = Column(String, unique=True, index=True)
     email_verified = Column(Boolean)
     locale = Column(String)
     role = Column(Enum(Role), default="user")
+    # gmail, fb , by default google, if from google email + username etc, password if from google emtpy string ala bala
+
 
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
