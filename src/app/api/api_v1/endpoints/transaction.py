@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from app.services.crud.user import get_current_user
 from app.sql_app.database import get_db
 from app.schemas.transaction import TransactionCreate
 from app.sql_app.models.models import User, Transaction
 from app.services.crud.transaction import create_transaction
 from app.services.common.utils import process_request
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.post("/transactions")
-async def create(transaction: TransactionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    
+async def create(transaction: TransactionCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     async def _create_transaction() -> Transaction:
         return await create_transaction(db, transaction, current_user.id)
     
