@@ -7,7 +7,7 @@ from uuid import UUID
 from app.sql_app.models.models import Contact
 
 
-async def create_contact(contact: ContactCreate, current_user: User, db: AsyncSession):
+async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSession):
     user = await db.execute(select(User).filter(User.id == contact.contact_user_id))
     user = user.scalars().first()
     if not user:
@@ -27,14 +27,14 @@ async def create_contact(contact: ContactCreate, current_user: User, db: AsyncSe
     return db_contact
 
 
-async def read_contacts(skip: int, limit: int, db: AsyncSession):
-    result = await db.execute(select(Contact).offset(skip).limit(limit))
+async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession):
+    result = await db.execute(select(Contact).filter(Contact.user_id == current_user.id).offset(skip).limit(limit))
     contacts = result.scalars().all()
     return contacts
 
 
-async def read_contact(contact_id: UUID, db: AsyncSession):
-    result = await db.execute(select(Contact).filter(Contact.id == contact_id))
+async def read_contact(current_user: User, contact_id: UUID, db: AsyncSession):
+    result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
@@ -42,8 +42,8 @@ async def read_contact(contact_id: UUID, db: AsyncSession):
     return contact
 
 
-async def delete_contact(contact_id: UUID, db: AsyncSession):
-    result = await db.execute(select(Contact).filter(Contact.id == contact_id))
+async def delete_contact(current_user: User, contact_id: UUID, db: AsyncSession):
+    result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
