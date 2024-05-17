@@ -1,10 +1,40 @@
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.future import select
 from app.sql_app.models.models import User
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+from app.sql_app.database import engine
+
+
+async def create_user(userinfo):
+    async with AsyncSession(engine) as session:
+        result = await session.execute(select(User).where(User.email == userinfo["email"]))
+        user = result.scalars().first()
+        if user:
+            stmt = (update(User).where(User.email == userinfo["email"]).values(
+                    sub=userinfo["sub"],
+                    name=userinfo["name"],
+                    given_name=userinfo["given_name"],
+                    family_name=userinfo["family_name"],
+                    picture=userinfo["picture"],
+                    email_verified=userinfo["email_verified"],
+                    locale=userinfo["locale"]))
+            await session.execute(stmt)
+        else:
+            new_user = User(
+                sub=userinfo["sub"],
+                name=userinfo["name"],
+                given_name=userinfo["given_name"],
+                family_name=userinfo["family_name"],
+                picture=userinfo["picture"],
+                email=userinfo["email"],
+                email_verified=userinfo["email_verified"],
+                locale=userinfo["locale"],
+                role="user")
+            session.add(new_user)
+        await session.commit()
 
 
 async def get_current_user(request: Request) -> User:
