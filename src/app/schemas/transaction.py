@@ -6,9 +6,10 @@ class TransactionBase(BaseModel):
     amount: int
     timestamp: datetime
     category: str
-    is_reccuring: bool
+    is_recurring: bool
     card_id: int
     user_id: int
+    category_id: int
     category_id: int
 
 

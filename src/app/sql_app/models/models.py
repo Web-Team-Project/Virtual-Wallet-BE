@@ -47,7 +47,7 @@ class Transaction(Base):
     amount = Column(Integer)
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
-    is_reccuring = Column(Boolean)
+    is_recurring = Column(Boolean)
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"))
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))

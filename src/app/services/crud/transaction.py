@@ -1,21 +1,33 @@
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
-from app.schemas.transaction import TransactionCreate
-from app.sql_app.models.models import Transaction
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.transaction import TransactionCreate, TransactionBase
+from app.sql_app.models.models import Category, Transaction
 
+async def create_transaction(db: AsyncSession, transaction: TransactionCreate, user_id: int):
+    result = await db.execute(select(Category).where(Category.id == transaction.category_id))
+    category = result.scalars().first()
+    
+    if category is None:
+        raise ValueError(f"Category with id {transaction.category_id} not found")
 
-async def create_transaction(db: Session, transaction: TransactionCreate, user_id: int):
-    db_transaction = Transaction(amount=transaction.amount,
-                                    timestamp=transaction.timestamp,
-                                    category=transaction.category,
-                                    is_reccuring=transaction.is_reccuring,
-                                    card_id=transaction.card_id,
-                                    user_id=user_id,
-                                    category_id=transaction.category_id)
+    if transaction is None:
+        raise ValueError("Transaction is None")
+
+    db_transaction = Transaction(
+        amount=transaction.amount,
+        timestamp=transaction.timestamp,
+        category=transaction.category,
+        is_recurring=transaction.is_recurring,
+        card_id=transaction.card_id,
+        user_id=user_id,
+        category_id=category.id  # pass the ID of the Category object
+    )
+
     db.add(db_transaction)
-    db.commit()
-    db.refresh(db_transaction)
+    await db.commit()
+    await db.refresh(db_transaction)
     return db_transaction
+
 
 
  
