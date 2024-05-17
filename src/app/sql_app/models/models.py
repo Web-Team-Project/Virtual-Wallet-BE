@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine
+from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from .models import Role
+from app.sql_app.models.role import Role
 
 
 class User(Base):
@@ -28,7 +28,7 @@ class Card(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(String, unique=True, index=True)
     card_holder = Column(String)
-    exp_date = Column(DateTime)
+    exp_date = Column(Date)
     cvv = Column(String)
     design = Column(String) # Image url
     user_id = Column(Integer, ForeignKey("users.id"))

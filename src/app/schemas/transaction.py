@@ -6,8 +6,10 @@ class TransactionBase(BaseModel):
     amount: int
     timestamp: datetime
     category: str
+    is_reccuring: bool
     card_id: int
     user_id: int
+    category_id: int
 
 
 class TransactionCreate(TransactionBase):
