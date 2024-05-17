@@ -66,6 +66,17 @@ class Category(Base):
     transactions = relationship("Transaction", back_populates="category")
 
 
+class Contact(Base):
+    __tablename__ = "contacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_contact_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+    user = relationship("User", back_populates="contacts")
+    user_contact = relationship("User") # Haven't decided if we need back_populates here
+
+
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
 Base.metadata.create_all(bind=sync_engine)
