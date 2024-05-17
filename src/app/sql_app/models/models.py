@@ -23,7 +23,7 @@ class User(Base):
     
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
-
+    contacts = relationship("Contact", back_populates="user", foreign_keys="Contact.user_id")
 
 class Card(Base):
     __tablename__ = "cards"
@@ -73,8 +73,8 @@ class Contact(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     user_contact_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
-    user = relationship("User", back_populates="contacts")
-    user_contact = relationship("User") # Haven't decided if we need back_populates here
+    user = relationship("User", back_populates="contacts", foreign_keys=[user_id])
+    user_contact = relationship("User", back_populates="contacts", foreign_keys=[user_contact_id])
 
 
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"

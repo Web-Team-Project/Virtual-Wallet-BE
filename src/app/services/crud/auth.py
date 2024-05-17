@@ -3,6 +3,7 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, JSONResponse
+from app.services.crud.user import create_user
 
 
 GOOGLE_CLIENT_ID = "1047295969598-97ot5u7518b43ng7tsi701iuq394m0vt.apps.googleusercontent.com"
@@ -59,6 +60,8 @@ async def auth_callback(request: Request):
     if "error" in userinfo:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
                             detail=userinfo["error"])
+
+    await create_user(userinfo)
 
     request.session["user"] = userinfo
     return RedirectResponse("/swagger")
