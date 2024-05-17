@@ -20,6 +20,7 @@ class User(Base):
     email_verified = Column(Boolean)
     locale = Column(String)
     role = Column(Enum(Role), default="user")
+    
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
 

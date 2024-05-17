@@ -2,6 +2,7 @@ from typing import List
 from pydantic import BaseModel
 from app.schemas.transaction import Transaction
 from app.schemas.card import Card
+from uuid import UUID
 
 
 class UserBase(BaseModel):
@@ -20,7 +21,7 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    id: int
+    id: UUID
     cards: List[Card] = []
     transactions: List[Transaction] = []
 
