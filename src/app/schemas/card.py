@@ -1,5 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, Field
+from uuid import UUID
 
 
 class CardBase(BaseModel):
@@ -8,7 +9,7 @@ class CardBase(BaseModel):
     exp_date: date
     cvv: str = Field(..., min_length=3, max_length=3)
     design: str
-    user_id: int
+    user_id: UUID
 
 
 class CardCreate(CardBase):
@@ -16,7 +17,7 @@ class CardCreate(CardBase):
 
 
 class Card(CardBase):
-    id: int
+    id: UUID
 
     class Config:
         from_attributes = True

@@ -4,9 +4,10 @@ from app.sql_app.models.models import Card
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from uuid import UUID
 
 
-async def create_card(db: AsyncSession, card: CardCreate, user_id: int):
+async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
     db_card = Card(number=card.number, 
                    card_holder=card.card_holder, 
                    exp_date=card.exp_date, 
@@ -19,7 +20,7 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: int):
     return db_card
 
 
-async def read_card(db: AsyncSession, card_id: int):
+async def read_card(db: AsyncSession, card_id: UUID):
     result = await db.execute(select(Card).where(Card.id == card_id))
     db_card = result.scalars().first()
     if db_card is None:
@@ -28,7 +29,7 @@ async def read_card(db: AsyncSession, card_id: int):
     return db_card
 
 
-async def update_card(db: AsyncSession, card_id: int, card: CardCreate, user_id: int):
+async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id: UUID):
     result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if not db_card:
@@ -44,7 +45,7 @@ async def update_card(db: AsyncSession, card_id: int, card: CardCreate, user_id:
     return db_card
 
 
-async def delete_card(db: AsyncSession, card_id: int, user_id: int):
+async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
     result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if db_card is None:

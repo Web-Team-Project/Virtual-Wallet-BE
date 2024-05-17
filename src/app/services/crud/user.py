@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from app.sql_app.models.models import User
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 
 async def get_current_user(request: Request) -> User:
@@ -20,7 +21,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     return db_user
 
 
-async def update_user_role(user_id: int, role: str, db: AsyncSession, current_user: User = Depends(get_current_user)) -> User:
+async def update_user_role(user_id: UUID, role: str, db: AsyncSession, current_user: User = Depends(get_current_user)) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalars().first()
     if current_user.role != "admin":
