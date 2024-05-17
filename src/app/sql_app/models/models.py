@@ -1,14 +1,16 @@
-from sqlalchemy import create_engine
-from app.sql_app.database import Base
+from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
+from app.sql_app.database import Base
 from app.sql_app.models.role import Role
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True) #uuid
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     sub = Column(String, unique=True, index=True)
     name = Column(String)
     given_name = Column(String)
@@ -18,7 +20,6 @@ class User(Base):
     email_verified = Column(Boolean)
     locale = Column(String)
     role = Column(Enum(Role), default="user")
-    # gmail, fb , by default google, if from google email + username etc, password if from google emtpy string ala bala
     cards = relationship("Card", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
 
@@ -26,13 +27,13 @@ class User(Base):
 class Card(Base):
     __tablename__ = "cards"
 
-    id = Column(Integer, primary_key=True, index=True) ##uuid
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     number = Column(String, unique=True, index=True)
     card_holder = Column(String)
-    exp_date = Column(String) # Maybe switch to DateTime
+    exp_date = Column(Date)
     cvv = Column(String)
     design = Column(String) # Image url
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
     user = relationship("User", back_populates="cards")
     transactions = relationship("Transaction", back_populates="card")
@@ -41,14 +42,14 @@ class Card(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(Integer, primary_key=True, index=True) ## UUid
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     amount = Column(Integer)
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
     is_recurring = Column(Boolean)
-    card_id = Column(Integer, ForeignKey("cards.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))
 
     card = relationship("Card", back_populates="transactions")
     user = relationship("User", back_populates="transactions")
@@ -58,7 +59,7 @@ class Transaction(Base):
 class Category(Base):
     __tablename__ = "categories"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     name = Column(String, unique=True)
 
     transactions = relationship("Transaction", back_populates="category")

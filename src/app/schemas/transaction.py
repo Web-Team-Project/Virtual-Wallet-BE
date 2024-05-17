@@ -10,6 +10,7 @@ class TransactionBase(BaseModel):
     card_id: int
     user_id: int
     category_id: int
+    category_id: int
 
 
 class TransactionCreate(TransactionBase):
