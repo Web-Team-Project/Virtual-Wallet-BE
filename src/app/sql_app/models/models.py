@@ -2,6 +2,7 @@ from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
+from app.sql_app.models.enum import Status
 from app.sql_app.models.role import Role
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
