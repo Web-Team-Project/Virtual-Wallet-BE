@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth, user, card, transaction, category, contact
+    auth, user, card, transaction, category, contact, wallet
 )
 
 api_router = APIRouter()
@@ -42,4 +42,10 @@ api_router.include_router(
     contact.router,
     prefix="",
     tags=["Contacts"],
+)
+
+api_router.include_router(
+    wallet.router,
+    prefix="",
+    tags=["Wallets"],
 )

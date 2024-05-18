@@ -96,11 +96,15 @@ class RecurringTransaction(Base):
     card = relationship("Card")
 
 
+class Wallet(Base):
+    __tablename__ = "wallets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    balance = Column(Float, default=0.0)
+
+    user = relationship("User")
+
+
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
-
-# za vseki sluchai da ne delete-va to tablicite nishto che ne go polzvame :D
-# Base.metadata.drop_all(bind=sync_engine)
-#
-# # Create all tables
-# Base.metadata.create_all(bind=sync_engine)
