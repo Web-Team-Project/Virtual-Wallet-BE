@@ -20,12 +20,12 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
     return db_card
 
 
-async def read_card(db: AsyncSession, card_id: UUID):
-    result = await db.execute(select(Card).where(Card.id == card_id))
+async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
+    result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if db_card is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail="Card not found.")
+                            detail=f"Card with id {card_id} not found for user {user_id}.")
     return db_card
 
 
