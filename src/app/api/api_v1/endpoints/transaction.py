@@ -25,6 +25,15 @@ async def get_transactions(db: AsyncSession, user_id: UUID) -> List[Transaction]
     return transactions
 
 
+@router.post("/transactions")
+async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+    async def _create_transaction() -> Transaction:
+        return await create_transaction(db, transaction, current_user.id)
+
+    return await process_request(_create_transaction)
+
+
 @router.post("/transactions", response_model=TransactionBase)
 async def create(
     transaction: TransactionCreate, 

@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,28 +6,23 @@ from app.schemas.transaction import TransactionCreate, TransactionBase
 from app.sql_app.models.models import Category, Transaction
 from uuid import UUID
 
-async def create_transaction(db: AsyncSession, transaction: TransactionCreate, sender_id: UUID, recipient_id: UUID) -> Transaction:
-    result = await db.execute(select(Category).where(Category.id == transaction.category_id))
-    category = result.scalars().first()
-    
-    if category is None:
-        raise ValueError(f"Category with id {transaction.category_id} not found")
-
-    db_transaction = Transaction(
-        amount=transaction.amount,
-        timestamp=transaction.timestamp,
-        is_recurring=transaction.is_recurring,
-        card_id=transaction.card_id,
-        sender_id=sender_id,  # Ensure sender_id is set correctly here
-        recipient_id=recipient_id,  # Ensure recipient_id is set correctly here
-        category_id=category.id,
-        status="pending"  # Default status is pending
+async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
+    new_transaction = Transaction(
+        id=uuid.uuid4(),
+        amount=transaction_data.amount,
+        timestamp=transaction_data.timestamp,
+        is_recurring=transaction_data.is_recurring,
+        card_id=transaction_data.card_id,
+        sender_id=sender_id,
+        recipient_id=transaction_data.recipient_id,
+        category_id=transaction_data.category_id,
+        status="pending"  # Assuming "pending" is the default status
     )
-
-    db.add(db_transaction)
+    db.add(new_transaction)
     await db.commit()
-    await db.refresh(db_transaction)
-    return db_transaction
+    await db.refresh(new_transaction)
+    return new_transaction
+
 
 
 async def get_transactions(transaction_id: UUID, db: AsyncSession, user_id: UUID):
