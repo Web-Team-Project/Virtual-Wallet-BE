@@ -2,25 +2,23 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionBase
 from app.sql_app.models.models import Category, Transaction
+from uuid import UUID
 
-async def create_transaction(db: AsyncSession, transaction: TransactionCreate, user_id: int):
+async def create_transaction(db: AsyncSession, transaction: TransactionCreate, user_id: UUID) -> Transaction:
     result = await db.execute(select(Category).where(Category.id == transaction.category_id))
     category = result.scalars().first()
     
     if category is None:
         raise ValueError(f"Category with id {transaction.category_id} not found")
 
-    if transaction is None:
-        raise ValueError("Transaction is None")
-
     db_transaction = Transaction(
         amount=transaction.amount,
         timestamp=transaction.timestamp,
-        category=transaction.category,
         is_recurring=transaction.is_recurring,
         card_id=transaction.card_id,
         user_id=user_id,
-        category_id=category.id  # pass the ID of the Category object
+        category_id=category.id,
+        status="pending"  # Default status is pending
     )
 
     db.add(db_transaction)
