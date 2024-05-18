@@ -34,7 +34,7 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
 async def update(card_id: UUID, card: CardCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     
     async def _update_card():
-        return await update_card(db, card_id, card, current_user.id)
+        return await update_card(db, card_id, card, current_user)
 
     return await process_request(_update_card)
 
