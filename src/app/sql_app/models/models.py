@@ -25,6 +25,7 @@ class User(Base):
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
     contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
+    categories = relationship("Category", back_populates="user")
 
 
 class Card(Base):
@@ -67,7 +68,9 @@ class Category(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     name = Column(String, unique=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
+    user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
 
 
