@@ -2,8 +2,9 @@ from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from app.sql_app.models.enumerate import Status
-from app.sql_app.models.role import Role
+
+from app.sql_app.models.enumerate import Status, Role
+
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -23,6 +24,7 @@ class User(Base):
     role = Column(Enum(Role), default="user")
     
     cards = relationship("Card", back_populates="user")
+
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
     contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
@@ -32,22 +34,27 @@ class Card(Base):
     __tablename__ = "cards"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    number = Column(String, unique=True, index=True)
+    number = Column(String)
     card_holder = Column(String)
     exp_date = Column(Date)
     cvv = Column(String)
-    design = Column(String)  # Image url
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+
+    design = Column(String) # Image url
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
 
     user = relationship("User", back_populates="cards")
-    transactions = relationship("Transaction", back_populates="card")
+    transactions = relationship("Transaction", back_populates="card", foreign_keys="[Transaction.card_id]")
 
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
+
     amount = Column(Integer)  # Amount might be switched to float
+
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
     is_recurring = Column(Boolean, default=False)
@@ -76,11 +83,25 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    user_contact_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_contact_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="contacts", foreign_keys=[user_id])
     user_contact = relationship("User", back_populates="contacts", foreign_keys=[user_contact_id])
+
+
+class RecurringTransaction(Base):
+    __tablename__ = "recurring_transactions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
+    amount = Column(Integer, nullable=False) # Amount might be switched to float
+    interval = Column(String, nullable=False)
+    next_execution_date = Column(Date, nullable=False)
+
+    user = relationship("User")
+    card = relationship("Card")
 
 
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"

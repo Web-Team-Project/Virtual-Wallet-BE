@@ -2,25 +2,24 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.schemas.contact import ContactCreate
-from app.schemas.user import User
 from uuid import UUID
-from app.sql_app.models.models import Contact
+from app.sql_app.models.models import User, Contact
 
 
 async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSession):
-    user = await db.execute(select(User).filter(User.id == contact.contact_user_id))
+    user = await db.execute(select(User).filter(User.id == contact.user_contact_id))
     user = user.scalars().first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
         
-    result = await db.execute(select(Contact).filter(Contact.user_id == current_user.id, Contact.contact_user_id == contact.contact_user_id))
+    result = await db.execute(select(Contact).filter(Contact.user_id == current_user.id, Contact.user_contact_id == contact.user_contact_id))
     existing_contact = result.scalars().first()
     if existing_contact:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
                             detail="Contact already exists.")
         
-    db_contact = Contact(user_id=current_user.id, contact_user_id=user.id)
+    db_contact = Contact(user_id=current_user.id, user_contact_id=user.id)
     db.add(db_contact)
     await db.commit()
     await db.refresh(db_contact)
