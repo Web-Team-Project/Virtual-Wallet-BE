@@ -1,10 +1,11 @@
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionBase
 from app.sql_app.models.models import Category, Transaction
 from uuid import UUID
 
-async def create_transaction(db: AsyncSession, transaction: TransactionCreate, user_id: UUID) -> Transaction:
+async def create_transaction(db: AsyncSession, transaction: TransactionCreate, sender_id: UUID, recipient_id: UUID) -> Transaction:
     result = await db.execute(select(Category).where(Category.id == transaction.category_id))
     category = result.scalars().first()
     
@@ -16,7 +17,8 @@ async def create_transaction(db: AsyncSession, transaction: TransactionCreate, u
         timestamp=transaction.timestamp,
         is_recurring=transaction.is_recurring,
         card_id=transaction.card_id,
-        user_id=user_id,
+        sender_id=sender_id,  # Ensure sender_id is set correctly here
+        recipient_id=recipient_id,  # Ensure recipient_id is set correctly here
         category_id=category.id,
         status="pending"  # Default status is pending
     )
@@ -27,6 +29,14 @@ async def create_transaction(db: AsyncSession, transaction: TransactionCreate, u
     return db_transaction
 
 
+async def get_transactions(transaction_id: UUID, db: AsyncSession, user_id: UUID):
+    try:
+        transactions = await db.execute(
+            select(Transaction).filter_by(transaction_id=transaction_id, user_id=user_id)
+        )
+        return transactions.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
  
 # async def read_card(db: AsyncSession, card_id: int):

@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.future import select
+from app.services.common.utils import get_current_user
 from app.sql_app.models.models import User
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,13 +37,6 @@ async def create_user(userinfo):
             session.add(new_user)
         await session.commit()
 
-
-async def get_current_user(request: Request) -> User:
-    user = request.session.get("user")
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, 
-                            detail="User not authenticated.")
-    return User(**user)
 
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
