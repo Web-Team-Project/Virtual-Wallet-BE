@@ -26,8 +26,11 @@ async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSe
     return {"contact_id": db_contact.id, "contact_name": user.name, "contact_email": user.email}
 
 
-async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession):
-    result = await db.execute(select(Contact).filter(Contact.user_id == current_user.id).offset(skip).limit(limit))
+async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession, search: str = None):
+    query = select(Contact).filter(Contact.user_id == current_user.id)
+    if search:
+        query = query.filter(User.email.contains(search))
+    result = await db.execute(query.distinct().offset(skip).limit(limit))
     contacts = result.scalars().all()
     response = []
     for contact in contacts:
