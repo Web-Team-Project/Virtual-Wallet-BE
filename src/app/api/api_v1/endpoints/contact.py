@@ -22,7 +22,7 @@ async def create(contact: ContactCreate, current_user: User = Depends(get_curren
 
 
 @router.get("/contacts")
-async def read_all(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def view_contacts(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
 
     async def _read_contacts():
         return await read_contacts(current_user, skip, limit, db)

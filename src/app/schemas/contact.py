@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from uuid import UUID
 
 class ContactBase(BaseModel):
-    user_id: UUID
     user_contact_id: UUID
 
 
