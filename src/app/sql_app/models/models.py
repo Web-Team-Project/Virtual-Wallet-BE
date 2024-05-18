@@ -2,7 +2,7 @@ from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from app.sql_app.models.enum import Status
+from app.sql_app.models.enumerate import Status
 from app.sql_app.models.role import Role
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -23,8 +23,10 @@ class User(Base):
     role = Column(Enum(Role), default="user")
     
     cards = relationship("Card", back_populates="user")
-    transactions = relationship("Transaction", back_populates="user")
-    contacts = relationship("Contact", back_populates="user", foreign_keys="Contact.user_id")
+    sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
+    received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
+    contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
+
 
 class Card(Base):
     __tablename__ = "cards"
@@ -34,7 +36,7 @@ class Card(Base):
     card_holder = Column(String)
     exp_date = Column(Date)
     cvv = Column(String)
-    design = Column(String) # Image url
+    design = Column(String)  # Image url
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
     user = relationship("User", back_populates="cards")
@@ -45,7 +47,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    amount = Column(Integer) # Amount might be switched to float
+    amount = Column(Integer)  # Amount might be switched to float
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
     is_recurring = Column(Boolean, default=False)
