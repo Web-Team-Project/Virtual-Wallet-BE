@@ -13,7 +13,7 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
                    exp_date=card.exp_date, 
                    cvv=card.cvv, 
                    design=card.design, 
-                   user_id=user_id)
+                   user_id=card.user_id)
     db.add(db_card)
     await db.commit()
     await db.refresh(db_card)
@@ -29,8 +29,8 @@ async def read_card(db: AsyncSession, card_id: UUID):
     return db_card
 
 
-async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id: UUID):
-    result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
+async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate):
+    result = await db.execute(select(Card).where(Card.id == card_id))
     db_card = result.scalars().first()
     if not db_card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 

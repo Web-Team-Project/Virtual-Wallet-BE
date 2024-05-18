@@ -22,14 +22,15 @@ class User(Base):
     role = Column(Enum(Role), default="user")
     
     cards = relationship("Card", back_populates="user")
-    transactions = relationship("Transaction", back_populates="user")
+    sent_transactions = relationship("Transaction", back_populates="sender", primaryjoin="User.id==Transaction.sender_id")
+    received_transactions = relationship("Transaction", back_populates="recipient", primaryjoin="User.id==Transaction.recipient_id")
     contacts = relationship("Contact", back_populates="user", foreign_keys="Contact.user_id")
 
 class Card(Base):
     __tablename__ = "cards"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    number = Column(String, unique=True, index=True)
+    number = Column(String)
     card_holder = Column(String)
     exp_date = Column(Date)
     cvv = Column(String)
@@ -37,7 +38,7 @@ class Card(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="cards")
-    transactions = relationship("Transaction", back_populates="card")
+    transactions = relationship("Transaction", back_populates="card", foreign_keys="[Transaction.card_id]")
 
 
 class Transaction(Base):
@@ -55,8 +56,8 @@ class Transaction(Base):
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
 
     card = relationship("Card", back_populates="transactions")
-    sender = relationship("User", back_populates="transactions", foreign_keys=[sender_id])
-    recipient = relationship("User", back_populates="transactions", foreign_keys=[recipient_id])
+    sender = relationship("User", back_populates="sent_transactions", foreign_keys=[sender_id])
+    recipient = relationship("User", back_populates="received_transactions", foreign_keys=[recipient_id])
     category = relationship("Category", back_populates="transactions")
 
 
