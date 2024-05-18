@@ -20,7 +20,7 @@ class User(Base):
     email_verified = Column(Boolean)
     locale = Column(String)
     role = Column(Enum(Role), default="user")
-    
+
     cards = relationship("Card", back_populates="user")
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
@@ -111,4 +111,5 @@ class Wallet(Base):
 
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
-Base.metadata.create_all(bind=sync_engine)
+
+# Base.metadata.create_all(bind=sync_engine)

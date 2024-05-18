@@ -3,10 +3,25 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionBase
-from app.sql_app.models.models import Category, Transaction
+from app.sql_app.models.models import Category, Transaction, Wallet
+from app.sql_app.models.enumerate import Status
 from uuid import UUID
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
+    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id))
+    sender_wallet = sender_wallet_result.scalars().first()
+
+    if not sender_wallet:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sender's wallet not found")
+
+    if sender_wallet.balance < transaction_data.amount:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient funds")
+
+    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction_data.recipient_id))
+    recipient_wallet = recipient_wallet_result.scalars().first()
+    if not recipient_wallet:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient's wallet not found")
+
     new_transaction = Transaction(
         id=uuid.uuid4(),
         amount=transaction_data.amount,
@@ -16,7 +31,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         sender_id=sender_id,
         recipient_id=transaction_data.recipient_id,
         category_id=transaction_data.category_id,
-        status="pending"  # Assuming "pending" is the default status
+        status="pending"
     )
     db.add(new_transaction)
     await db.commit()
@@ -28,28 +43,60 @@ async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
 
-# async def read_card(db: AsyncSession, card_id: int):
-#     stmt = select(Card).where(Card.id == card_id)
-#     result = await db.execute(stmt)
-#     db_card = result.scalars().first()
-#     if db_card is None:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-#                             detail="Card not found.")
-#     return db_card
+
+async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+    transaction = result.scalars().first()
+
+    if not transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Transaction with id {transaction_id} not found")
+
+    if transaction.recipient_id != current_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    if transaction.status != Status.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.sender_id))
+    sender_wallet = sender_wallet_result.scalars().first()
+    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.recipient_id))
+    recipient_wallet = recipient_wallet_result.scalars().first()
+
+    if sender_wallet.balance < transaction.amount:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    sender_wallet.balance -= transaction.amount
+    recipient_wallet.balance += transaction.amount
+
+    transaction.status = Status.confirmed
+    db.add(transaction)
+    db.add(sender_wallet)
+    db.add(recipient_wallet)
+    await db.commit()
+    await db.refresh(transaction)
+    await db.refresh(sender_wallet)
+    await db.refresh(recipient_wallet)
+    return transaction
 
 
-# class Transaction(Base):
-#     __tablename__ = "transactions"
+async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
 
-#     id = Column(Integer, primary_key=True, index=True)
-#     amount = Column(Integer)
-#     timestamp = Column(DateTime(timezone=True))
-#     category = Column(String)
-#     is_reccuring = Column(Boolean)
-#     card_id = Column(Integer, ForeignKey("cards.id"))
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     category_id = Column(Integer, ForeignKey("categories.id"))
+    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+    transaction = result.scalars().first()
 
-#     card = relationship("Card", back_populates="transactions")
-#     user = relationship("User", back_populates="transactions")
-#     category = relationship("Category", back_populates="transactions")
+    if not transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Transaction with id {transaction_id} not found")
+
+    if transaction.recipient_id != current_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    if transaction.status != Status.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+    transaction.status = Status.declined
+    db.add(transaction)
+    await db.commit()
+    await db.refresh(transaction)
+
+    return transaction
