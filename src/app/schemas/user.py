@@ -6,6 +6,7 @@ from uuid import UUID
 
 
 class UserBase(BaseModel):
+    id: UUID
     sub: str
     name: str
     given_name: str
@@ -21,7 +22,6 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    id: UUID
     cards: List[Card] = []
     transactions: List[Transaction] = []
 

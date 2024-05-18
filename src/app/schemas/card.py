@@ -9,7 +9,6 @@ class CardBase(BaseModel):
     exp_date: date
     cvv: str = Field(..., min_length=3, max_length=3)
     design: str
-    user_id: UUID
 
 
 class CardCreate(CardBase):

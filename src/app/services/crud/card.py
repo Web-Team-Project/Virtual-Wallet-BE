@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from app.schemas.card import CardCreate
-from app.sql_app.models.models import User, Card
+from app.sql_app.models.models import Card
+from app.schemas.user import User
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -13,7 +14,7 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
                    exp_date=card.exp_date, 
                    cvv=card.cvv, 
                    design=card.design, 
-                   user_id=card.user_id)
+                   user_id=user_id)
     db.add(db_card)
     await db.commit()
     await db.refresh(db_card)
@@ -55,5 +56,6 @@ async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="Card not found.")
     db.delete(db_card)
+    await db.flush()
     await db.commit()
     return {"message": "Card deleted successfully."}

@@ -5,6 +5,10 @@ import logging
 from app.schemas.user import UserBase
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app.sql_app.database import engine
+from app.sql_app.models.models import User
 
 
 logger = logging.getLogger(__name__)
@@ -13,8 +17,16 @@ logger = logging.getLogger(__name__)
 async def get_current_user(request: Request) -> UserBase:
     user = request.session.get("user")
     if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                             detail="User not authenticated.")
+    async with AsyncSession(engine) as session:
+        result = await session.execute(select(User).where(User.email == user["email"]))
+        db_user = result.scalars().first()
+        if db_user:
+            user["id"] = str(db_user.id)
+    request.session['user'] = user
     return UserBase(**user)
+
 
 
 async def process_request(execute_fn: Callable) -> Any | JSONResponse:
