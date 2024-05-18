@@ -24,17 +24,10 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     return new_transaction
 
 
+async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
+    result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
+    return result.scalars().all()
 
-async def get_transactions(transaction_id: UUID, db: AsyncSession, user_id: UUID):
-    try:
-        transactions = await db.execute(
-            select(Transaction).filter_by(transaction_id=transaction_id, user_id=user_id)
-        )
-        return transactions.scalars().all()
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
- 
 # async def read_card(db: AsyncSession, card_id: int):
 #     stmt = select(Card).where(Card.id == card_id)
 #     result = await db.execute(stmt)
