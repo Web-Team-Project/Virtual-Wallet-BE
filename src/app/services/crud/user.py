@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.future import select
+from app.schemas.user import UserBase
 from app.services.common.utils import get_current_user
 from app.sql_app.models.models import User
-from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.sql_app.database import engine
@@ -14,7 +14,7 @@ async def create_user(userinfo):
         result = await session.execute(select(User).where(User.email == userinfo["email"]))
         user = result.scalars().first()
         if user:
-            stmt = (update(User).where(User.email == userinfo["email"]).values(
+            res = (update(User).where(User.email == userinfo["email"]).values(
                     sub=userinfo["sub"],
                     name=userinfo["name"],
                     given_name=userinfo["given_name"],
@@ -22,7 +22,7 @@ async def create_user(userinfo):
                     picture=userinfo["picture"],
                     email_verified=userinfo["email_verified"],
                     locale=userinfo["locale"]))
-            await session.execute(stmt)
+            await session.execute(res)
         else:
             new_user = User(
                 sub=userinfo["sub"],
@@ -35,8 +35,8 @@ async def create_user(userinfo):
                 locale=userinfo["locale"],
                 role="user")
             session.add(new_user)
-        await session.commit()
-
+            await session.commit()
+        return UserBase(**userinfo)
 
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User:

@@ -6,13 +6,16 @@ from app.schemas.user import UserBase
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
 
+
 logger = logging.getLogger(__name__)
+
 
 async def get_current_user(request: Request) -> UserBase:
     user = request.session.get("user")
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return UserBase(**user)
+
 
 async def process_request(execute_fn: Callable) -> Any | JSONResponse:
     try:
@@ -29,5 +32,3 @@ async def process_request(execute_fn: Callable) -> Any | JSONResponse:
             status_code=status.HTTP_400_BAD_REQUEST,
             content=ex,
         )
-    
-    
