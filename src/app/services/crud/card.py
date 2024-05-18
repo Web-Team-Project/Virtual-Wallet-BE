@@ -55,7 +55,6 @@ async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
     if db_card is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="Card not found.")
-    db.delete(db_card)
-    await db.flush()
+    await db.delete(db_card)
     await db.commit()
     return {"message": "Card deleted successfully."}

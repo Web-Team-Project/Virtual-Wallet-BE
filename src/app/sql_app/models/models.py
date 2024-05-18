@@ -99,8 +99,8 @@ class RecurringTransaction(Base):
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
 
-
-Base.metadata.drop_all(bind=sync_engine)
-
-# Create all tables
-Base.metadata.create_all(bind=sync_engine)
+# za vseki sluchai da ne delete-va to tablicite nishto che ne go polzvame :D
+# Base.metadata.drop_all(bind=sync_engine)
+#
+# # Create all tables
+# Base.metadata.create_all(bind=sync_engine)

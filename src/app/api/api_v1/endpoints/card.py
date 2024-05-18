@@ -24,7 +24,7 @@ async def create(card: CardCreate, db: AsyncSession = Depends(get_db), current_u
 
 @router.get("/cards/{card_id}")
 async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    
+
     async def _read_card():
         return await read_card(db, card_id, current_user.id)
 
@@ -33,7 +33,7 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
 
 @router.put("/cards/{card_id}")
 async def update(card_id: UUID, card: CardCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    
+
     async def _update_card():
         return await update_card(db, card_id, card, current_user)
 

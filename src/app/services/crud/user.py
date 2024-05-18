@@ -36,7 +36,6 @@ async def create_user(userinfo):
                 role="user")
             session.add(new_user)
             await session.commit()
-        return UserBase(**userinfo)
 
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
