@@ -50,6 +50,7 @@ class Transaction(Base):
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"))
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))
+    status = Column(String, default="pending")  # Status as a string
 
     card = relationship("Card", back_populates="transactions")
     user = relationship("User", back_populates="transactions", foreign_keys="[Transaction.user_id]")

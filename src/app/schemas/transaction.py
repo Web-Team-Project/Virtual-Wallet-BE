@@ -10,6 +10,7 @@ class TransactionBase(BaseModel):
     card_id: UUID
     user_id: UUID
     category_id: UUID
+    status: str
 
 class TransactionCreate(TransactionBase):
     pass

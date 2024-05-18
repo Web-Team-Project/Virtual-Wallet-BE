@@ -17,7 +17,8 @@ async def create_transaction(db: AsyncSession, transaction: TransactionCreate, u
         is_recurring=transaction.is_recurring,
         card_id=transaction.card_id,
         user_id=user_id,
-        category_id=category.id
+        category_id=category.id,
+        status="pending"  # Default status is pending
     )
 
     db.add(db_transaction)
