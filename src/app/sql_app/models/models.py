@@ -44,16 +44,19 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    amount = Column(Integer)
+    amount = Column(Integer) # Amount might be switched to float
     timestamp = Column(DateTime(timezone=True))
-    is_recurring = Column(Boolean)
-    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"))
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))
-    status = Column(String, default="pending")  # Status as a string
+    category = Column(String)
+    is_recurring = Column(Boolean, default=False)
+    status = Column(Enum(Status), default="pending")
+    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
+    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
 
     card = relationship("Card", back_populates="transactions")
-    user = relationship("User", back_populates="transactions", foreign_keys="[Transaction.user_id]")
+    sender = relationship("User", back_populates="sent_transactions", foreign_keys=[sender_id])
+    recipient = relationship("User", back_populates="received_transactions", foreign_keys=[recipient_id])
     category = relationship("Category", back_populates="transactions")
 
 

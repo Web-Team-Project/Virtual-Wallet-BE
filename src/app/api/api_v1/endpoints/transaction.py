@@ -12,6 +12,8 @@ from uuid import UUID
 router = APIRouter()
 
 
+@router.get("/transactions")
+async def get_transaction()
 
 @router.post("/transactions")
 async def create(transaction: TransactionCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
