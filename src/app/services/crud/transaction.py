@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList
 from app.sql_app.models.models import  Transaction, Wallet, User, Card
@@ -77,11 +77,17 @@ async def get_transactions_by_user_id(db: AsyncSession, user_id: uuid.UUID):
 
 
 async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
-    query = select(Transaction).where(Transaction.user_id == current_user.id)
+    if current_user.is_admin:
+        query = select(Transaction)
+    else:
+        query = select(Transaction).where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
+
     if filter.start_date:
         query = query.where(Transaction.timestamp >= filter.start_date)
     if filter.end_date:
         query = query.where(Transaction.timestamp <= filter.end_date)
+    if filter.sender_id:
+        query = query.where(Transaction.sender_id == filter.sender_id)
     if filter.recipient_id:
         query = query.where(Transaction.recipient_id == filter.recipient_id)
     if filter.direction:
@@ -89,11 +95,13 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
             query = query.where(Transaction.recipient_id == current_user.id)
         elif filter.direction == "outgoing":
             query = query.where(Transaction.sender_id == current_user.id)
+
     if filter.sort_by:
         if filter.sort_by == "amount":
             query = query.order_by(Transaction.amount)
         elif filter.sort_by == "date":
             query = query.order_by(Transaction.timestamp)
+
     total = await db.execute(query.with_only_columns([func.count()]))
     transactions = await db.execute(query.offset(skip).limit(limit))
     return TransactionList(transactions=transactions.scalars().all(), total=total.scalar())

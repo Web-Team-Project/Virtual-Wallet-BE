@@ -34,6 +34,7 @@ class Transaction(TransactionBase):
 class TransactionFilter(BaseModel):
     start_date: Optional[datetime]
     end_date: Optional[datetime]
+    sender_id: Optional[UUID]
     recipient_id: Optional[UUID]
     direction: Optional[str]
     sort_by: Optional[str]
