@@ -1,5 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from app.schemas.category import Category
+from app.schemas.contact import Contact
 from app.schemas.transaction import Transaction
 from app.schemas.card import Card
 from uuid import UUID
@@ -27,6 +29,8 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     cards: List[Card] = []
+    categories: List[Category] = []
+    contacts: List[Contact] = []
     transactions: List[Transaction] = []
 
     class Config:
