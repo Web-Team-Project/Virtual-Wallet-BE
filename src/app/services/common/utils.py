@@ -24,7 +24,7 @@ async def get_current_user(request: Request) -> UserBase:
         db_user = result.scalars().first()
         if db_user:
             user["id"] = str(db_user.id)
-    request.session['user'] = user
+    request.session["user"] = user
     return UserBase(**user)
 
 

@@ -19,7 +19,10 @@ async def create_user(userinfo):
                     family_name=userinfo["family_name"],
                     picture=userinfo["picture"],
                     email_verified=userinfo["email_verified"],
-                    locale=userinfo["locale"]))
+                    locale=userinfo["locale"],
+                    is_active=True,
+                    is_blocked=False,
+                    is_admin=False,))
             await session.execute(res)
         else:
             new_user = User(
@@ -30,7 +33,10 @@ async def create_user(userinfo):
                 picture=userinfo["picture"],
                 email=userinfo["email"],
                 email_verified=userinfo["email_verified"],
-                locale=userinfo["locale"],)
+                locale=userinfo["locale"],
+                is_active=True,
+                is_blocked=False,
+                is_admin=False,)
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
@@ -42,7 +48,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     return db_user
 
 
-async def update_user_role(user_id: UUID, db: AsyncSession, current_user) -> User:
+async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -56,14 +62,19 @@ async def update_user_role(user_id: UUID, db: AsyncSession, current_user) -> Use
     return {"message": "User role updated successfully."}
 
 
-async def delete_user(email: str, db: AsyncSession):
-    db_user = await get_user_by_email(email, db)
-    if not db_user:
+async def deactivate_user(user_id: UUID, db: AsyncSession, current_user: User) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="You are not authorized to perform this action.")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
-    await db.delete(db_user)
+    user.is_active = False
     await db.commit()
-    return {"message": "User deleted successfully."}
+    await db.refresh(user)
+    return {"message": "User deactivated successfully."}
 
 
 async def block_user(email: str, db: AsyncSession):

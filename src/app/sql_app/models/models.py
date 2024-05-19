@@ -17,7 +17,7 @@ class User(Base):
     family_name = Column(String)
     picture = Column(String)
     email = Column(String, unique=True, index=True)
-    email_verified = Column(Boolean) #ako gmaial verified, facebook,
+    email_verified = Column(Boolean)
     locale = Column(String)
     phone_number = Column(String)
     is_admin = Column(Boolean, default=False)

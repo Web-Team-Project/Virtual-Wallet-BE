@@ -15,6 +15,8 @@ class UserBase(BaseModel):
     email: str
     email_verified: bool
     locale: str
+    is_active: Optional[bool] = True
+    is_blocked: Optional[bool] = False
     is_admin: Optional[bool] = False
 
 
