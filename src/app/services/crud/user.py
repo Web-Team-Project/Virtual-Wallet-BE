@@ -1,8 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.future import select
-from app.schemas.user import UserBase
-from app.services.common.utils import get_current_user
 from app.sql_app.models.models import User
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -38,25 +36,25 @@ async def create_user(userinfo):
             await session.commit()
             await session.refresh(new_user)
 
+
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))
     db_user = result.scalars().first()
     return db_user
 
 
-async def update_user_role(user_id: UUID, role: str, db: AsyncSession, current_user: User = Depends(get_current_user)) -> User:
-    result = await db.execute(select(User).where(User.id == user_id))
-    db_user = result.scalars().first()
-    if current_user.role != "admin":
+async def update_user_role(user_id: UUID, role: str, db: AsyncSession, current_user) -> User:
+    if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
-                            detail="User does not have permission to update user role.")
+                            detail="You are not authorized to perform this action.")
+    db_user = await db.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
     db_user.role = role
     await db.commit()
     await db.refresh(db_user)
-    return db_user
+    return {"message": "User role updated successfully."}
 
 
 async def delete_user(email: str, db: AsyncSession):

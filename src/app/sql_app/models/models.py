@@ -2,7 +2,7 @@ from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from app.sql_app.models.enumerate import Status, Role, Currency
+from app.sql_app.models.enumerate import Status, Currency
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -19,8 +19,12 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     verified = Column(Boolean) #ako gmaial verified, facebook,
     locale = Column(String)
-    role = Column(Enum(Role), default="user") #boolean da go napravim
-    # phone_number
+    phone_number = Column(String)
+    is_admin = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    is_blocked = Column(Boolean, default=False)
+
+
     cards = relationship("Card", back_populates="user")
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
@@ -39,6 +43,7 @@ class Card(Base):
     design = Column(String)
     is_credit = Column(Boolean)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
     user = relationship("User", back_populates="cards")
     transactions = relationship("Transaction", back_populates="card", foreign_keys="[Transaction.card_id]")
 

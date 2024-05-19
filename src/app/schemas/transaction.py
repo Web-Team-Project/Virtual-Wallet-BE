@@ -2,6 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from uuid import UUID
 
+
 class TransactionBase(BaseModel):
     amount: int
     timestamp: datetime
@@ -12,13 +13,15 @@ class TransactionBase(BaseModel):
     category_id: UUID
     status: str
 
+
 class TransactionCreate(BaseModel):
     amount: int
     timestamp: datetime
     is_recurring: bool
     card_id: UUID
-    recipient_id: UUID  # Add recipient_id here
+    recipient_id: UUID
     category_id: UUID
+
 
 class Transaction(TransactionBase):
     id: UUID
