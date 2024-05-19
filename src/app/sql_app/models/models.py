@@ -17,7 +17,7 @@ class User(Base):
     family_name = Column(String)
     picture = Column(String)
     email = Column(String, unique=True, index=True)
-    verified = Column(Boolean) #ako gmaial verified, facebook,
+    email_verified = Column(Boolean) #ako gmaial verified, facebook,
     locale = Column(String)
     phone_number = Column(String)
     is_admin = Column(Boolean, default=False)
@@ -30,7 +30,7 @@ class User(Base):
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
     contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
     categories = relationship("Category", back_populates="user")
-    wallets = relationship("Wallet", back_populates="wallets")
+    wallets = relationship("Wallet", back_populates="user")
 
 class Card(Base):
     __tablename__ = "cards"
@@ -61,11 +61,13 @@ class Transaction(Base):
     sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
+    wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"), nullable=False)
 
     card = relationship("Card", back_populates="transactions")
     sender = relationship("User", back_populates="sent_transactions", foreign_keys=[sender_id])
     recipient = relationship("User", back_populates="received_transactions", foreign_keys=[recipient_id])
     category = relationship("Category", back_populates="transactions")
+    wallet = relationship("Wallet", back_populates="transactions")
 
 
 
@@ -114,6 +116,7 @@ class Wallet(Base):
     currency = Column(Enum(Currency))
 
     user = relationship("User", back_populates="wallets")
+    transactions = relationship("Transaction", back_populates="wallet", foreign_keys="[Transaction.wallet_id]")
 
 
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"

@@ -30,8 +30,7 @@ async def create_user(userinfo):
                 picture=userinfo["picture"],
                 email=userinfo["email"],
                 email_verified=userinfo["email_verified"],
-                locale=userinfo["locale"],
-                role="user")
+                locale=userinfo["locale"],)
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
@@ -43,7 +42,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     return db_user
 
 
-async def update_user_role(user_id: UUID, role: str, db: AsyncSession, current_user) -> User:
+async def update_user_role(user_id: UUID, db: AsyncSession, current_user) -> User:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -51,7 +50,7 @@ async def update_user_role(user_id: UUID, role: str, db: AsyncSession, current_u
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
-    db_user.role = role
+    db_user.is_admin = True
     await db.commit()
     await db.refresh(db_user)
     return {"message": "User role updated successfully."}

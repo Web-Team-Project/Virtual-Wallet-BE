@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends
 from app.schemas.card import CardCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import User
-from app.services.common.utils import process_request
-from app.services.crud.user import get_current_user
+from app.services.common.utils import get_current_user, process_request
 from app.sql_app.database import get_db
 from app.services.crud.card import create_card, read_card, update_card, delete_card
 from app.sql_app.models.models import Card

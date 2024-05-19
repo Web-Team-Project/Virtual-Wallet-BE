@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.schemas.contact import ContactCreate
-from app.services.common.utils import process_request
+from app.services.common.utils import get_current_user, process_request
 from app.services.crud.contact import create_contact, delete_contact, read_contact, read_contacts
-from app.services.crud.user import get_current_user
 from app.sql_app.database import get_db
 from app.sql_app.models.models import User
 

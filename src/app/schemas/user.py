@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from app.schemas.transaction import Transaction
 from app.schemas.card import Card
@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     email: str
     email_verified: bool
     locale: str
+    is_admin: Optional[bool] = False
 
 
 class UserCreate(UserBase):

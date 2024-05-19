@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.schemas.category import CategoryCreate
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.common.utils import process_request
-from app.services.crud.user import get_current_user
+from app.services.common.utils import get_current_user, process_request
 from app.sql_app.database import get_db
 from app.services.crud.category import create_category, delete_category, read_categories
 from app.sql_app.models.models import User, Category
