@@ -29,7 +29,7 @@ async def update_role(user_id: UUID, db: AsyncSession = Depends(get_db), current
 
 
 @router.delete("/users/{user_id}/deactivate")
-async def deactive(user_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def deactivate(user_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     async def _deactivate_user():
         return await deactivate_user(user_id, db, current_user)
@@ -37,20 +37,20 @@ async def deactive(user_id: UUID, db: AsyncSession = Depends(get_db), current_us
     return await process_request(_deactivate_user)
 
 
-@router.put("/users/{email}/block")
-async def block(email: str, db: AsyncSession = Depends(get_db)):
+@router.put("/users/{user_id}/block")
+async def block(user_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     async def _block_user():
-        return await block_user(email, db)
+        return await block_user(user_id, db, current_user)
     
     return await process_request(_block_user)
 
 
-@router.put("/users/{email}/unblock")
-async def unblock(email: str, db: AsyncSession = Depends(get_db)):
+@router.put("/users/{user_id}/unblock")
+async def unblock(user_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     async def _unblock_user():
-        return await unblock_user(email, db)
+        return await unblock_user(user_id, db, current_user)
     
     return await process_request(_unblock_user)
 

@@ -42,6 +42,12 @@ async def create_user(userinfo):
             await session.refresh(new_user)
 
 
+async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User:
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalars().first()
+    return db_user
+
+
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))
     db_user = result.scalars().first()
@@ -77,8 +83,11 @@ async def deactivate_user(user_id: UUID, db: AsyncSession, current_user: User) -
     return {"message": "User deactivated successfully."}
 
 
-async def block_user(email: str, db: AsyncSession):
-    db_user = await get_user_by_email(email, db)
+async def block_user(user_id: UUID, db: AsyncSession, current_user: User):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="You are not authorized to perform this action.")
+    db_user = await get_user_by_id(user_id, db)
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
@@ -88,8 +97,11 @@ async def block_user(email: str, db: AsyncSession):
     return db_user
 
 
-async def unblock_user(email: str, db: AsyncSession):
-    db_user = await get_user_by_email(email, db)
+async def unblock_user(user_id: UUID, db: AsyncSession, current_user: User):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="You are not authorized to perform this action.")
+    db_user = await get_user_by_id(user_id, db)
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
