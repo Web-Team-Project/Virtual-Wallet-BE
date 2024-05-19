@@ -2,7 +2,7 @@ from sqlalchemy import Date, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from app.sql_app.models.enumerate import Status, Role
+from app.sql_app.models.enumerate import Status, Role, Currency
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -17,16 +17,16 @@ class User(Base):
     family_name = Column(String)
     picture = Column(String)
     email = Column(String, unique=True, index=True)
-    email_verified = Column(Boolean)
+    verified = Column(Boolean) #ako gmaial verified, facebook,
     locale = Column(String)
-    role = Column(Enum(Role), default="user")
-
+    role = Column(Enum(Role), default="user") #boolean da go napravim
+    # phone_number
     cards = relationship("Card", back_populates="user")
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
     received_transactions = relationship("Transaction", back_populates="recipient", foreign_keys="[Transaction.recipient_id]")
     contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
     categories = relationship("Category", back_populates="user")
-
+    wallets = relationship("Wallet", back_populates="wallets")
 
 class Card(Base):
     __tablename__ = "cards"
@@ -37,8 +37,8 @@ class Card(Base):
     exp_date = Column(Date)
     cvv = Column(String)
     design = Column(String)
+    is_credit = Column(Boolean)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-
     user = relationship("User", back_populates="cards")
     transactions = relationship("Transaction", back_populates="card", foreign_keys="[Transaction.card_id]")
 
@@ -61,6 +61,7 @@ class Transaction(Base):
     sender = relationship("User", back_populates="sent_transactions", foreign_keys=[sender_id])
     recipient = relationship("User", back_populates="received_transactions", foreign_keys=[recipient_id])
     category = relationship("Category", back_populates="transactions")
+
 
 
 class Category(Base):
@@ -105,11 +106,12 @@ class Wallet(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     balance = Column(Float, default=0.0)
+    currency = Column(Enum(Currency))
 
-    user = relationship("User")
+    user = relationship("User", back_populates="wallets")
 
 
 SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
 
-# Base.metadata.create_all(bind=sync_engine)
+Base.metadata.create_all(bind=sync_engine)

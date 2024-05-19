@@ -36,7 +36,7 @@ async def create_user(userinfo):
                 role="user")
             session.add(new_user)
             await session.commit()
-
+            await session.refresh(new_user)
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))

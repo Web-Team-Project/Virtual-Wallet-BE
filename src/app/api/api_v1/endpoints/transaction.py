@@ -14,6 +14,7 @@ from app.services.common.utils import get_current_user
 
 router = APIRouter()
 
+
 @router.get("/transactions")
 async def get_transactions(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
 
@@ -33,7 +34,6 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
     return await process_request(_create_transaction)
 
 
-
 @router.post("/transaction/{transaction_id}/approve")
 async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db),
                               current_user: User = Depends(get_current_user)):
@@ -42,7 +42,8 @@ async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
 
     return await process_request(_approve_transaction)
 
-@router.post("/transactions/{transaction_id}/reject")
+
+@router.post("/transaction/{transaction_id}/reject")
 async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     async def _reject_transaction() -> Transaction:
         return await reject_transaction(db, transaction_id, current_user.id)
@@ -50,6 +51,7 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
     return await process_request(_reject_transaction)
 
 
-@router.post("/transactions/{transaction_id}/withdraw")
-async def withdraw():
-    pass
+# @router.post("/transaction/{transaction_id}/withdraw")
+# async def withdraw(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+#     async def _withdraw() -> Transaction:
+#         return await

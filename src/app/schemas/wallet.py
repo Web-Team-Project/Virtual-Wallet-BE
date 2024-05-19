@@ -8,7 +8,7 @@ class WalletBase(BaseModel):
 
 
 class WalletCreate(WalletBase):
-    pass
+    id: UUID
 
 
 class Wallet(WalletBase):

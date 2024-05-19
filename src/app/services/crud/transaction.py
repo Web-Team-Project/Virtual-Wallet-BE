@@ -2,8 +2,8 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.transaction import TransactionCreate, TransactionBase
-from app.sql_app.models.models import Category, Transaction, Wallet
+from app.schemas.transaction import TransactionCreate
+from app.sql_app.models.models import  Transaction, Wallet
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 
@@ -100,3 +100,13 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
     await db.refresh(transaction)
 
     return transaction
+
+# async def withdraw_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+#     result = await db.execute(select(Transaction).where(Transaction.id) == transaction_id)
+#     transaction = result.scalars().first()
+#
+#     if not transaction:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                             detail=f"Transaction with id {transaction_id} not found")
+#
+#     if transaction.sender_id != current_user_id:
