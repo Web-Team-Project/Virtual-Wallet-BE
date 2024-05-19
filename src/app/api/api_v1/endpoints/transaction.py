@@ -5,7 +5,7 @@ from app.schemas.user import UserBase
 from app.sql_app.database import get_db
 from app.schemas.user import User
 from app.schemas.transaction import Transaction
-from app.services.crud.transaction import create_transaction, get_transactions_by_user_id, approve_transaction, reject_transaction
+from app.services.crud.transaction import confirm_transaction, create_transaction, get_transactions_by_user_id, approve_transaction, reject_transaction
 from app.services.common.utils import process_request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -34,6 +34,15 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
     return await process_request(_create_transaction)
 
 
+@router.put("/transactions/{transaction_id}/confirm")
+async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    
+    async def _confirm_transaction() -> Transaction:
+        return await confirm_transaction(db, transaction_id, current_user.id)
+
+    return await process_request(_confirm_transaction)
+
+
 @router.post("/transaction/{transaction_id}/approve")
 async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db),
                               current_user: User = Depends(get_current_user)):
@@ -49,9 +58,3 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
         return await reject_transaction(db, transaction_id, current_user.id)
     
     return await process_request(_reject_transaction)
-
-
-# @router.post("/transaction/{transaction_id}/withdraw")
-# async def withdraw(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-#     async def _withdraw() -> Transaction:
-#         return await

@@ -59,6 +59,18 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     return new_transaction
 
 
+async def confirm_transaction(transaction_id: UUID, db: AsyncSession) -> Transaction:
+    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+    transaction = result.scalars().first()
+    if not transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                             detail="Transaction not found.")
+    transaction.status = "confirmed"
+    await db.commit()
+    await db.refresh(transaction)
+    return transaction
+
+
 async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
@@ -123,13 +135,3 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
     await db.refresh(transaction)
 
     return transaction
-
-# async def withdraw_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
-#     result = await db.execute(select(Transaction).where(Transaction.id) == transaction_id)
-#     transaction = result.scalars().first()
-#
-#     if not transaction:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"Transaction with id {transaction_id} not found")
-#
-#     if transaction.sender_id != current_user_id:
