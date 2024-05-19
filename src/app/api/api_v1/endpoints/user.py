@@ -1,13 +1,22 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends
 from app.services.common.utils import get_current_user, process_request
-from app.services.crud.user import block_user, deactivate_user, get_user_by_email, search_users, unblock_user, update_user_role
+from app.services.crud.user import block_user, deactivate_user, get_user_by_email, search_users, unblock_user, add_phone, update_user_role, user_info
 from app.sql_app.database import get_db
-from app.sql_app.models.models import User
+from app.schemas.user import User, UserUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 router = APIRouter()
+
+
+@router.get("/users/info")
+async def get_user_info(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+        
+        async def _get_user_info():
+            return await user_info(db, current_user)
+        
+        return await process_request(_get_user_info)
 
 
 @router.get("/users/{email}")
@@ -17,6 +26,15 @@ async def get_user(email: str, db: AsyncSession = Depends(get_db)):
         return await get_user_by_email(email, db)
     
     return await process_request(_get_user)
+
+
+@router.post("/users/phone")
+async def add_phone_number(phone_number: UserUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+    async def _add_phone():
+        return await add_phone(phone_number, db, current_user)
+    
+    return await process_request(_add_phone)
 
 
 @router.put("/users/{user_id}/role")

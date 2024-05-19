@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth, user, card, transaction, category, contact, wallet
+    auth, user, card, transaction, category, contact, wallet, auth_email
 )
 
 api_router = APIRouter()
@@ -12,6 +12,12 @@ api_router.include_router(
     auth.router,
     prefix="",
     tags=["Authentication"],
+)
+
+api_router.include_router(
+    auth_email.router,
+    prefix="",
+    tags=["Email Authentication"],
 )
 
 api_router.include_router(

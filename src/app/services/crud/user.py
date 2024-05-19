@@ -1,7 +1,7 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
-from app.sql_app.models.models import User
+from app.sql_app.models.models import Card, User, Category, Contact, Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.sql_app.database import engine
@@ -42,6 +42,20 @@ async def create_user(userinfo):
             await session.refresh(new_user)
 
 
+async def user_info(db: AsyncSession, current_user: User):
+    result_cards = await db.execute(select(Card).where(Card.user_id == current_user.id))
+    result_categories = await db.execute(select(Category).where(Category.user_id == current_user.id))
+    result_contacts = await db.execute(select(Contact).where(Contact.user_id == current_user.id))
+    result_transactions = await db.execute(
+        select(Transaction).join(Card).where(Card.user_id == current_user.id))
+
+    return {"user": current_user.name,
+            "cards": result_cards.scalars().all(),
+            "categories": result_categories.scalars().all(),
+            "contacts": result_contacts.scalars().all(),
+            "transactions": result_transactions.scalars().all(),}
+
+
 async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalars().first()
@@ -52,6 +66,18 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))
     db_user = result.scalars().first()
     return db_user
+
+
+async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    db_user = result.scalars().first()
+    db_user.phone_number = phone_number.phone_number
+    if db_user.phone_number:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Phone number already exists.")
+    await db.commit()
+    await db.refresh(db_user)
+    return {"message": "Phone number updated successfully."}
 
 
 async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:

@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.schemas.contact import ContactCreate
@@ -29,14 +30,14 @@ async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSe
 async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession, search: str = None):
     query = select(Contact).filter(Contact.user_id == current_user.id)
     if search:
-        query = query.filter(User.email.contains(search))
+        query = query.filter(or_(User.email.contains(search), User.phone_number.contains(search)))
     result = await db.execute(query.distinct().offset(skip).limit(limit))
     contacts = result.scalars().all()
     response = []
     for contact in contacts:
         user = await db.execute(select(User).filter(User.id == contact.user_contact_id))
         user = user.scalars().first()
-        response.append({"contact_id": contact.id, "contact_name": user.name, "contact_email": user.email})
+        response.append({"contact_id": contact.id, "contact_name": user.name, "contact_email": user.email, "contact_phone_number": user.phone_number})
     return response
 
 
