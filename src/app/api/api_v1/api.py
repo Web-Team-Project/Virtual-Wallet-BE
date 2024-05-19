@@ -2,14 +2,14 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth, user, card, transaction, category, contact, wallet
+    auth_google, user, card, transaction, category, contact, wallet, auth_mail
 )
 
 api_router = APIRouter()
 
 
 api_router.include_router(
-    auth.router,
+    auth_google.router,
     prefix="",
     tags=["Authentication"],
 )
@@ -48,4 +48,10 @@ api_router.include_router(
     wallet.router,
     prefix="",
     tags=["Wallets"],
+)
+
+api_router.include_router(
+    auth_mail.router,
+    prefix="",
+    tags=["E-mail authentication"]
 )

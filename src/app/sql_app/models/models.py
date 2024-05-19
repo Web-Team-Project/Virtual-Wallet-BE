@@ -18,6 +18,7 @@ class User(Base):
     picture = Column(String)
     email = Column(String, unique=True, index=True)
     email_verified = Column(Boolean)
+    hashed_password = Column(String)
     locale = Column(String)
     phone_number = Column(String)
     is_admin = Column(Boolean, default=False)
