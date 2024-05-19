@@ -22,7 +22,7 @@ async def create_user(userinfo):
                     locale=userinfo["locale"],
                     is_active=True,
                     is_blocked=False,
-                    is_admin=False,))
+                    is_admin=user.is_admin))
             await session.execute(res)
         else:
             new_user = User(
