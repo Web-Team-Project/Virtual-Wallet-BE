@@ -1,14 +1,13 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.transaction import TransactionBase, TransactionCreate
+from app.schemas.transaction import TransactionBase, TransactionCreate, TransactionFilter
 from app.schemas.user import UserBase
 from app.sql_app.database import get_db
 from app.schemas.user import User
 from app.schemas.transaction import Transaction
-from app.services.crud.transaction import confirm_transaction, create_transaction, get_transactions_by_user_id, approve_transaction, reject_transaction
+from app.services.crud.transaction import confirm_transaction, create_transaction, get_transactions, approve_transaction, reject_transaction
 from app.services.common.utils import process_request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from uuid import UUID
 from app.services.common.utils import get_current_user
 
@@ -16,10 +15,14 @@ router = APIRouter()
 
 
 @router.get("/transactions")
-async def get_transactions(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+async def view_transactions(filter: TransactionFilter = Depends(), 
+                            skip: int = 0, 
+                            limit: int = 100, 
+                            db: AsyncSession = Depends(get_db), 
+                            current_user: User = Depends(get_current_user)):
+    
     async def _get_transactions() -> List[Transaction]:
-        return await get_transactions_by_user_id(db, current_user.id)
+        return await get_transactions(db, current_user.id, filter, skip, limit)
 
     return await process_request(_get_transactions)
 

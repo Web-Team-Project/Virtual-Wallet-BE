@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List, Optional
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -28,3 +29,16 @@ class Transaction(TransactionBase):
 
     class Config:
         from_attributes = True
+
+
+class TransactionFilter(BaseModel):
+    start_date: Optional[datetime]
+    end_date: Optional[datetime]
+    recipient_id: Optional[UUID]
+    direction: Optional[str]
+    sort_by: Optional[str]
+
+
+class TransactionList(BaseModel):
+    transactions: List[Transaction]
+    total: int
