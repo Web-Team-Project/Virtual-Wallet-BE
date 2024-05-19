@@ -50,8 +50,8 @@ api_router.include_router(
     tags=["Wallets"],
 )
 
-api_router.include_router(
-    auth_mail.router,
-    prefix="",
-    tags=["E-mail authentication"]
-)
+# api_router.include_router(
+#     auth_mail.router,
+#     prefix="",
+#     tags=["E-mail authentication"]
+# )

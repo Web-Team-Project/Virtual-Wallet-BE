@@ -3,11 +3,21 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate
-from app.sql_app.models.models import  Transaction, Wallet
+from app.sql_app.models.models import  Transaction, Wallet, User, Card
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
+
+    sender_result = await db.execute(select(User).where(User.id == sender_id))
+    sender = sender_result.scalars().first()
+
+    if not sender:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sender not found.")
+
+    if sender.is_blocked:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sender is blocked.")
+
     sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id))
     sender_wallet = sender_wallet_result.scalars().first()
 
@@ -18,6 +28,12 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     if sender_wallet.balance < transaction_data.amount:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Insufficient funds.")
+
+    card_result = await db.execute(select(Card).where(Card.id == transaction_data.card_id, Card.user_id == sender_id))
+    card = card_result.scalars().first()
+
+    if not card:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found!")
 
     recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction_data.recipient_id))
     recipient_wallet = recipient_wallet_result.scalars().first()
@@ -34,6 +50,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         sender_id=sender_id,
         recipient_id=transaction_data.recipient_id,
         category_id=transaction_data.category_id,
+        wallet_id=sender_wallet.id,
         status="pending"
     )
     db.add(new_transaction)
