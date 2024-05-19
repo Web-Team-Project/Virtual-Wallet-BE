@@ -1,14 +1,16 @@
 from pydantic import BaseModel
 from uuid import UUID
+from app.sql_app.models.enumerate import Currency
 
 
 class WalletBase(BaseModel):
     user_id: UUID
     amount: float = 0.0
+    currency: Currency
 
 
-class WalletCreate(WalletBase):
-    id: UUID
+class WalletCreate(BaseModel):
+    currency: Currency
 
 
 class Wallet(WalletBase):
@@ -16,3 +18,7 @@ class Wallet(WalletBase):
 
     class Config:
         from_attributes = True
+
+class WalletWithdraw(BaseModel):
+    amount: float
+    currency: Currency
