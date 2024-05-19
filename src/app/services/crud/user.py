@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
 from app.sql_app.models.models import User
@@ -52,6 +52,18 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))
     db_user = result.scalars().first()
     return db_user
+
+
+async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
+    result = await db.execute(select(User).where(User.id == current_user.id))
+    db_user = result.scalars().first()
+    db_user.phone_number = phone_number.phone_number
+    if db_user.phone_number:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Phone number already exists.")
+    await db.commit()
+    await db.refresh(db_user)
+    return {"message": "Phone number updated successfully."}
 
 
 async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:
