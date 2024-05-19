@@ -56,9 +56,13 @@ async def unblock(user_id: UUID, db: AsyncSession = Depends(get_db), current_use
 
 
 @router.get("/search/users")
-async def search_all_users(search: str, db: AsyncSession = Depends(get_db)):
-
+async def search_all_users(search: str = None, 
+                           skip: int = 0, 
+                           limit: int = 100, 
+                           db: AsyncSession = Depends(get_db), 
+                           current_user: User = Depends(get_current_user)):
+    
     async def _search_users():
-        return await search_users(search, db)
+        return await search_users(db, skip, limit, current_user, search)
     
     return await process_request(_search_users)
