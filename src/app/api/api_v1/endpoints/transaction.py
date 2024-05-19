@@ -5,7 +5,7 @@ from app.schemas.user import UserBase
 from app.sql_app.database import get_db
 from app.schemas.user import User
 from app.schemas.transaction import Transaction
-from app.services.crud.transaction import confirm_transaction, create_transaction, get_transactions, approve_transaction, reject_transaction
+from app.services.crud.transaction import confirm_transaction, create_transaction, deny_transaction, get_transactions, approve_transaction, reject_transaction
 from app.services.common.utils import process_request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -61,3 +61,12 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
         return await reject_transaction(db, transaction_id, current_user.id)
     
     return await process_request(_reject_transaction)
+
+
+@router.put("/transaction/{transaction_id}/deny")
+async def deny_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    
+    async def _deny_transaction() -> Transaction:
+        return await deny_transaction(db, transaction_id, current_user.id)
+
+    return await process_request(_deny_transaction)

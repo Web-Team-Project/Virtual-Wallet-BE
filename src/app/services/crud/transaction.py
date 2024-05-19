@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList
 from app.sql_app.models.models import  Transaction, Wallet, User, Card
@@ -59,7 +59,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     return new_transaction
 
 
-async def confirm_transaction(transaction_id: uuid.UUID, db: AsyncSession) -> Transaction:
+async def confirm_transaction(transaction_id: UUID, db: AsyncSession) -> Transaction:
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -71,7 +71,7 @@ async def confirm_transaction(transaction_id: uuid.UUID, db: AsyncSession) -> Tr
     return transaction
 
 
-async def get_transactions_by_user_id(db: AsyncSession, user_id: uuid.UUID):
+async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
 
@@ -166,3 +166,20 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
     await db.refresh(transaction)
 
     return transaction
+
+
+async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="Only admins can deny transactions.")
+    transaction = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+    transaction = transaction.scalars().first()
+    if not transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                            detail="Transaction not found.")
+    if transaction.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Transaction is not pending.")
+    await db.execute(update(Transaction).where(Transaction.id == transaction_id).values(status="denied"))
+    await db.commit()
+    return {"message": "Transaction denied."}
