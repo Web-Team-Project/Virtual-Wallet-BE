@@ -22,6 +22,8 @@ class TransactionCreate(BaseModel):
     card_id: UUID
     recipient_id: UUID
     category_id: UUID
+    interval: Optional[int] = None
+    next_execution_date: Optional[datetime] = None
 
 
 class Transaction(TransactionBase):

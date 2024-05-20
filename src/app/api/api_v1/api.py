@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth, user, card, transaction, category, contact, wallet, auth_email
+    auth, user, card, transaction, category, contact, wallet, auth_email, recurring_transaction
 )
 
 api_router = APIRouter()
@@ -54,4 +54,10 @@ api_router.include_router(
     wallet.router,
     prefix="",
     tags=["Wallets"],
+)
+
+api_router.include_router(
+    recurring_transaction.router,
+    prefix="",
+    tags=["Recurring Transactions"]
 )

@@ -40,7 +40,7 @@ def _create_app() -> FastAPI:
         api_router,
         prefix=get_settings().API_V1_STR,
     )
-
+    
 
     app_.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 

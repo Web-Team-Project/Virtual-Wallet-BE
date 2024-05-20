@@ -1,4 +1,4 @@
-from sqlalchemy import Date, create_engine
+from sqlalchemy import Date, Integer, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
@@ -101,7 +101,7 @@ class RecurringTransaction(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
     amount = Column(Float, nullable=False)
-    interval = Column(String, nullable=False)
+    interval = Column(Integer, nullable=False)
     next_execution_date = Column(Date, nullable=False)
 
     user = relationship("User")
