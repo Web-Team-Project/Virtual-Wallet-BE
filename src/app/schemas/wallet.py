@@ -10,6 +10,7 @@ class WalletBase(BaseModel):
 
 
 class WalletCreate(BaseModel):
+    amount: float = 0.0
     currency: Currency
 
 

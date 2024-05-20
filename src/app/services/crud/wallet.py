@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
 from app.schemas.wallet import WalletCreate, WalletWithdraw
-from app.sql_app.models.models import Wallet
+from app.sql_app.models.models import User, Wallet
 from app.sql_app.models.enumerate import Currency
 
 
@@ -28,20 +28,20 @@ async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> 
     return new_wallet
 
 
-# async def add_funds_to_wallet(db: AsyncSession, wallet: WalletCreate, user_id: UUID):
-#     db_wallet = await db.execute(select(Wallet).where(Wallet.user_id == user_id))
-#     db_wallet = db_wallet.scalars().first()
-#     if db_wallet is None:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail="Wallet not found.")
-#     db_wallet.balance += wallet.amount
-#     await db.commit()
-#     await db.refresh(db_wallet)
-#     return db_wallet
+async def add_funds_to_wallet(db: AsyncSession, wallet: WalletCreate, current_user: User) -> Wallet:
+    db_wallet = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+    db_wallet = db_wallet.scalars().first()
+    if db_wallet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Wallet not found.")
+    db_wallet.balance += wallet.amount
+    await db.commit()
+    await db.refresh(db_wallet)
+    return db_wallet
 
 
-async def withdraw_funds_from_wallet(db: AsyncSession, user_id: UUID, amount: float, currency: Currency) -> Wallet:
-    result = await db.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
+async def withdraw_funds_from_wallet(db: AsyncSession, current_user: User, amount: float, currency: Currency) -> Wallet:
+    result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id, Wallet.currency == currency))
     wallet = result.scalars().first()
     if wallet is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 

@@ -3,6 +3,7 @@ from enum import Enum
 
 class Status(Enum):
     pending = "pending"
+    awaiting = "awaiting"
     confirmed = "confirmed"
     declined = "declined"
 

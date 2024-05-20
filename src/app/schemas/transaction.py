@@ -32,12 +32,12 @@ class Transaction(TransactionBase):
 
 
 class TransactionFilter(BaseModel):
-    start_date: Optional[datetime]
-    end_date: Optional[datetime]
-    sender_id: Optional[UUID]
-    recipient_id: Optional[UUID]
-    direction: Optional[str]
-    sort_by: Optional[str]
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    sender_id: Optional[UUID] = None
+    recipient_id: Optional[UUID] = None
+    direction: Optional[str] = None
+    sort_by: Optional[str] = None
 
 
 class TransactionList(BaseModel):
