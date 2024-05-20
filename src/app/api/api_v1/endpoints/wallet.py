@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.schemas.wallet import WalletCreate, Wallet, WalletWithdraw
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.common.utils import get_current_user, process_request
-from app.services.crud.wallet import add_funds_to_wallet, create_wallet, withdraw_funds_from_wallet
+from app.services.crud.wallet import add_funds_to_wallet, check_balance, create_wallet, withdraw_funds_from_wallet
 from app.sql_app.database import get_db
 from app.schemas.user import User
 
@@ -36,3 +36,12 @@ async def withdraw_funds(wallet: WalletWithdraw, db: AsyncSession = Depends(get_
         return await withdraw_funds_from_wallet(db, current_user, wallet.amount, wallet.currency)
 
     return await process_request(_withdraw_funds)
+
+
+@router.get("/wallets/balance")
+async def get_balance(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+    async def _get_balance():
+        return await check_balance(db, current_user)
+
+    return await process_request(_get_balance)

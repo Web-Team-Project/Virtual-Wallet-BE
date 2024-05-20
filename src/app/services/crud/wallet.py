@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
-from app.schemas.wallet import WalletCreate, WalletWithdraw
+from app.schemas.wallet import WalletCreate
 from app.sql_app.models.models import User, Wallet
 from app.sql_app.models.enumerate import Currency
 
@@ -11,20 +11,18 @@ from app.sql_app.models.enumerate import Currency
 async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> Wallet:
     result = await db.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
     wallet = result.scalars().first()
-
     if wallet:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail ="Wallet already exists for this user and currency")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail ="Wallet already exists for this user and currency.")
 
-    new_wallet =Wallet(
+    new_wallet = Wallet(
         id=uuid.uuid4(),
         user_id=user_id,
         balance=0.0,
-        currency=currency
-    )
+        currency=currency)
     db.add(new_wallet)
     await db.commit()
     await db.refresh(new_wallet)
-
     return new_wallet
 
 
@@ -53,3 +51,12 @@ async def withdraw_funds_from_wallet(db: AsyncSession, current_user: User, amoun
     await db.commit()
     await db.refresh(wallet)
     return wallet
+
+
+async def check_balance(db: AsyncSession, current_user: User) -> float:
+    result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+    wallet = result.scalars().first()
+    if wallet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Wallet not found.")
+    return wallet.balance, wallet.currency
