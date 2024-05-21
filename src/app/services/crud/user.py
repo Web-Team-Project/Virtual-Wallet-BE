@@ -49,7 +49,7 @@ async def user_info(db: AsyncSession, current_user: User):
     result_transactions = await db.execute(
         select(Transaction).join(Card).where(Card.user_id == current_user.id))
 
-    return {"user": current_user.name,
+    return {"e-mail": current_user.email,
             "cards": result_cards.scalars().all(),
             "categories": result_categories.scalars().all(),
             "contacts": result_contacts.scalars().all(),

@@ -14,19 +14,23 @@ from app.sql_app.models.models import User
 logger = logging.getLogger(__name__)
 
 
-async def get_current_user(request: Request) -> UserBase:
+async def get_current_user(request: Request) -> User:
     user = request.session.get("user")
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                             detail="User not authenticated.")
+                            detail="User not authenticated.")
     async with AsyncSession(engine) as session:
-        result = await session.execute(select(User).where(User.email == user["email"]))
+        if user.get("email_verified"):
+            result = await session.execute(select(User).where(User.email == user["email"]))
+        else:
+            result = await session.execute(select(User).where(User.email == user["email"], User.email_verified == None))
+        
         db_user = result.scalars().first()
         if db_user:
             user["id"] = str(db_user.id)
             user["is_admin"] = db_user.is_admin
     request.session["user"] = user
-    return UserBase(**user)
+    return User(**user)
 
 
 
