@@ -1,13 +1,13 @@
 from typing import List, Optional
+from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
-
 from app.schemas.card import Card
 from app.schemas.transaction import Transaction
 
 
 class UserEmailSchema(BaseModel):
     email: EmailStr
-    hashed_password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8)
     phone_number: str = Field(..., min_length=10, max_length=10)
 
 
@@ -26,13 +26,6 @@ class UserSchema(UserEmailSchema):
     class Config:
         from_attributes = True
 
-
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-
-class UserInDB(User):
-    hashed_password: str
 
 class LoginRequest(BaseModel):
     email: str

@@ -2,7 +2,6 @@
 Boot FastApi app
 """
 from urllib.parse import urljoin
-
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware

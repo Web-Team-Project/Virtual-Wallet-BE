@@ -3,9 +3,10 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import RedirectResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from app.schemas.email_user import LoginRequest, User, UserInDB
+from app.schemas.email_user import LoginRequest, UserEmailCreate
+from app.schemas.user import User
 from app.services.common.utils import get_current_user
-from app.services.crud.email_user import authenticate_user
+from app.services.crud.email_user import authenticate_user, register_with_email
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.crud.user import get_user_by_email
@@ -22,11 +23,6 @@ ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
-def get_user(db, email: str):
-    if email in db:
-        user_dict = db[email]
-        return UserInDB(**user_dict)
 
 async def authenticate_user(db: AsyncSession, email: str, password: str):
     user = await get_user_by_email(email, db)
@@ -45,7 +41,7 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession 
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    request.session['user'] = {'email': user.email}
+    request.session["user"] = {"email": user.email, "id": str(user.id)}
     return {"access_token": user.email, "token_type": "bearer"}
 
 
@@ -58,3 +54,10 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/")
+
+
+@router.post("/users")
+async def create_new_user(user: UserEmailCreate, db: AsyncSession = Depends(get_db)):
+    hashed_password = pwd_context.hash(user.hashed_password)
+    db_user = await register_with_email(db, user.email, hashed_password)
+    return db_user

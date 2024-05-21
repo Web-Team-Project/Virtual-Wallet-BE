@@ -1,7 +1,8 @@
-from typing import Callable, Any
+from typing import Callable, Any, Union
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, Request, status
 import logging
+from app.schemas.email_user import UserEmailSchema
 from app.schemas.user import UserBase
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,7 +29,6 @@ async def get_current_user(request: Request) -> User:
         db_user = result.scalars().first()
         if db_user:
             user["id"] = str(db_user.id)
-            user["is_admin"] = db_user.is_admin
     request.session["user"] = user
     return User(**user)
 
