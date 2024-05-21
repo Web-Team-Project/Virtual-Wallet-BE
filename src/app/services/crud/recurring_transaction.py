@@ -44,8 +44,8 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Trans
         id=uuid.uuid4(),
         user_id=sender_id,
         card_id=transaction_data.card_id,
-        recipient_id=transaction_data.recipient_id,  # Ensuring recipient_id is populated
-        category_id=transaction_data.category_id,  # Ensuring category_id is populated
+        recipient_id=transaction_data.recipient_id,
+        category_id=transaction_data.category_id,
         amount=transaction_data.amount,
         interval=transaction_data.interval,
         next_execution_date=transaction_data.next_execution_date
@@ -58,10 +58,8 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Trans
 
 
 async def process_recurring_transactions(db: AsyncSession):
-    # Ensure current_time is timezone-aware and in UTC
     current_time = datetime.now(pytz.utc)
 
-    # Fetch recurring transactions that are due
     result = await db.execute(
         select(RecurringTransaction)
         .where(and_(RecurringTransaction.next_execution_date <= current_time))
@@ -80,10 +78,9 @@ async def process_recurring_transactions(db: AsyncSession):
         try:
             await create_transaction(db, transaction_data, recurring_transaction.user_id)
 
-            # Update the next execution date for the recurring transaction
             recurring_transaction.next_execution_date += timedelta(seconds=recurring_transaction.interval)
             db.add(recurring_transaction)
-            await db.commit()  # Commit the changes
+            await db.commit()
         except Exception as e:
-            await db.rollback()  # Rollback the transaction in case of error
-            raise e  # Optionally, log or handle the error as needed
+            await db.rollback()
+            raise e

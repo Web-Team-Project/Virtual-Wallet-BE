@@ -38,15 +38,14 @@ def _setup_cors(p_app: FastAPI) -> None:
 
 scheduler = AsyncIOScheduler()
 
-scheduler = AsyncIOScheduler()
 
 async def scheduled_task():
     async for db in get_db():
         try:
             await process_recurring_transactions(db)
-            await db.commit()  # Commit the transaction
+            await db.commit()
         except Exception as e:
-            await db.rollback()  # Rollback the transaction on error
+            await db.rollback()
             raise e
         finally:
             await db.close()
