@@ -10,12 +10,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
 from app.sql_app.database import get_db
-import time
-import asyncio
-
 from app.api.api_v1.api import api_router
 from app.core.config import get_settings
 from app.services.crud.recurring_transaction import process_recurring_transactions
+
 
 SECRET_KEY = "supersecretkey"
 
@@ -50,11 +48,11 @@ async def scheduled_task():
         finally:
             await db.close()
 
-scheduler.add_job(scheduled_task, 'cron', second=10)
+scheduler.add_job(scheduled_task, "cron", second=10)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(p_app: FastAPI):
     print("Starting FastAPI application...")
     scheduler.start()
     yield
