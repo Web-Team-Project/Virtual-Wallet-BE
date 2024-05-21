@@ -5,7 +5,6 @@ from app.schemas.user import User
 from app.services.common.utils import get_current_user, process_request
 from app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions
 from app.sql_app.database import get_db
-from fastapi_utilities import repeat_every
 
 
 router = APIRouter()
@@ -29,8 +28,3 @@ async def process_recurring_transactions_endpoint(db: AsyncSession = Depends(get
     return await process_request(_process_recurring_transactions)
 
 
-@router.on_event("startup")
-@repeat_every(seconds=10)
-async def recurring_transaction_job():
-    with get_db() as db:
-        await process_recurring_transactions(db)

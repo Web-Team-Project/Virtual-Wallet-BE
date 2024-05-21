@@ -32,7 +32,8 @@ class User(Base):
     contacts = relationship("Contact", back_populates="user", foreign_keys="[Contact.user_id]")
     categories = relationship("Category", back_populates="user")
     wallets = relationship("Wallet", back_populates="user")
-
+    recurring_transactions = relationship("RecurringTransaction", back_populates="user", foreign_keys="[RecurringTransaction.user_id]")
+    recurring_received_transactions = relationship("RecurringTransaction", back_populates="recipient", foreign_keys="[RecurringTransaction.recipient_id]")
 class Card(Base):
     __tablename__ = "cards"
 
@@ -47,6 +48,7 @@ class Card(Base):
 
     user = relationship("User", back_populates="cards")
     transactions = relationship("Transaction", back_populates="card", foreign_keys="[Transaction.card_id]")
+    recurring_transactions = relationship("RecurringTransaction", foreign_keys="[RecurringTransaction.card_id]", back_populates="card")
 
 
 class Transaction(Base):
@@ -100,12 +102,16 @@ class RecurringTransaction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
+    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)  # Pointing to the users table
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     amount = Column(Float, nullable=False)
     interval = Column(Integer, nullable=False)
-    next_execution_date = Column(Date, nullable=False)
+    next_execution_date = Column(DateTime(timezone=True), nullable=False)
 
-    user = relationship("User")
-    card = relationship("Card")
+    user = relationship("User", back_populates="recurring_transactions", foreign_keys=[user_id])
+    card = relationship("Card", back_populates="recurring_transactions", foreign_keys=[card_id])
+    recipient = relationship("User", back_populates="recurring_received_transactions", foreign_keys=[recipient_id])
+    category = relationship("Category")
 
 
 class Wallet(Base):

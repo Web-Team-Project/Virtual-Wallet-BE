@@ -7,6 +7,7 @@ from app.services.crud.transaction import create_transaction
 from app.sql_app.models.models import  RecurringTransaction, Transaction, Card, User, Wallet
 from uuid import UUID
 import uuid
+import pytz
 
 
 async def create_recurring_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
@@ -43,6 +44,8 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Trans
         id=uuid.uuid4(),
         user_id=sender_id,
         card_id=transaction_data.card_id,
+        recipient_id=transaction_data.recipient_id,  # Ensuring recipient_id is populated
+        category_id=transaction_data.category_id,  # Ensuring category_id is populated
         amount=transaction_data.amount,
         interval=transaction_data.interval,
         next_execution_date=transaction_data.next_execution_date
@@ -55,22 +58,32 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Trans
 
 
 async def process_recurring_transactions(db: AsyncSession):
-    result = await db.execute(select(Transaction).where(and_(Transaction.is_recurring == True, Transaction.next_execution_date <= datetime.now())))
+    # Ensure current_time is timezone-aware and in UTC
+    current_time = datetime.now(pytz.utc)
+
+    # Fetch recurring transactions that are due
+    result = await db.execute(
+        select(RecurringTransaction)
+        .where(and_(RecurringTransaction.next_execution_date <= current_time))
+    )
     due_recurring_transactions = result.scalars().all()
 
     for recurring_transaction in due_recurring_transactions:
         transaction_data = TransactionCreate(
             amount=recurring_transaction.amount,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(pytz.utc),
             is_recurring=False,
             card_id=recurring_transaction.card_id,
             recipient_id=recurring_transaction.recipient_id,
             category_id=recurring_transaction.category_id,
-            interval=None,
-            next_execution_date=None
         )
-        await create_transaction(db, transaction_data, recurring_transaction.user_id)
+        try:
+            await create_transaction(db, transaction_data, recurring_transaction.user_id)
 
-        recurring_transaction.next_execution_date += timedelta(seconds=recurring_transaction.interval)
-        db.add(recurring_transaction)
-        await db.commit()
+            # Update the next execution date for the recurring transaction
+            recurring_transaction.next_execution_date += timedelta(seconds=recurring_transaction.interval)
+            db.add(recurring_transaction)
+            await db.commit()  # Commit the changes
+        except Exception as e:
+            await db.rollback()  # Rollback the transaction in case of error
+            raise e  # Optionally, log or handle the error as needed
