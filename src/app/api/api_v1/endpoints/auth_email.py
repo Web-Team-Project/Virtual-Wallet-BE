@@ -7,6 +7,7 @@ from app.schemas.email_user import LoginRequest, UserEmailCreate
 from app.schemas.user import User
 from app.services.common.utils import get_current_user
 from app.services.crud.email_user import authenticate_user, register_with_email
+from app.services.crud.email_user import authenticate_user, register_with_email
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.crud.user import get_user_by_email
