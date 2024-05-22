@@ -1,10 +1,8 @@
-from fastapi import Depends, HTTPException, status, Request, APIRouter
-from fastapi.security import OAuth2PasswordBearer
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, Request, APIRouter
+from fastapi import APIRouter, Depends
 from app.schemas.email_user import EmailUserCreate, LoginRequest
-from app.services.crud.email_user import authenticate_user, register_with_email
-from passlib.context import CryptContext
+from app.services.common.utils import process_request
+from app.services.crud.email_user import create_new_user, login
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.sql_app.database import get_db
 
@@ -12,29 +10,20 @@ from app.sql_app.database import get_db
 router = APIRouter()
 
 
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
 @router.post("/users")
-async def create_new_user(user: EmailUserCreate, db: AsyncSession = Depends(get_db)):
-    hashed_password = pwd_context.hash(user.hashed_password)
-    db_user = await register_with_email(db, user.email, hashed_password, user.phone_number)
-    return db_user
+async def email_register(user: EmailUserCreate, db: AsyncSession = Depends(get_db)):
+
+    async def _create_new_user():
+            return await create_new_user(user, db)
+    
+    return await process_request(_create_new_user)
+    
 
 
 @router.post("/token")
-async def login(request: Request, login_request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    user = await authenticate_user(db, login_request.email, login_request.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    request.session["user"] = {"id": str(user.id), "email": user.email, "phone_number": user.phone_number}
-    return {"access_token": user.email, "token_type": "bearer"}
+async def email_login(request: Request, login_request: LoginRequest, db: AsyncSession = Depends(get_db)):
+
+    async def _email_login():
+        return await login(request ,login_request, db)
+    
+    return await process_request(_email_login)
