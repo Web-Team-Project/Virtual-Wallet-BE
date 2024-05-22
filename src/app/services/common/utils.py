@@ -1,9 +1,7 @@
-from typing import Callable, Any, Union
+from typing import Callable, Any
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, Request, status
 import logging
-from app.schemas.email_user import UserEmailSchema
-from app.schemas.user import UserBase
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession

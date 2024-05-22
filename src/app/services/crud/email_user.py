@@ -18,20 +18,17 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     return user
 
 
-async def register_with_email(db: AsyncSession, email: str, hashed_password: str):
+async def register_with_email(db: AsyncSession, email: str, hashed_password: str, phone_number: str):
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalars().first()
     if user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
                             detail="User already exists.")
 
-    user = User(email=email, hashed_password=hashed_password)
+    user = User(email=email, hashed_password=hashed_password, phone_number=phone_number)
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return {"id": user.id,
             "email": user.email,
-            "phone_number": user.phone_number,
-            "is_active": user.is_active,
-            "is_blocked": user.is_blocked,
-            "is_admin": user.is_admin}
+            "phone_number": user.phone_number}

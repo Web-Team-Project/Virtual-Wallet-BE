@@ -14,6 +14,7 @@ router = APIRouter()
 async def create_recurring_transaction_endpoint(recurring_transaction: TransactionCreate, 
                                                 db: AsyncSession = Depends(get_db), 
                                                 current_user: User = Depends(get_current_user)):
+    
     async def _create_recurring_transaction():
         return await create_recurring_transaction(db, recurring_transaction, current_user.id)
 
@@ -22,6 +23,7 @@ async def create_recurring_transaction_endpoint(recurring_transaction: Transacti
 
 @router.put("/recurring_transaction/process")
 async def process_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db)):
+
     async def _process_recurring_transactions():
         return await process_recurring_transactions(db)
 

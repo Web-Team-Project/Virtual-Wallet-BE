@@ -49,7 +49,7 @@ async def user_info(db: AsyncSession, current_user: User):
     result_transactions = await db.execute(
         select(Transaction).join(Card).where(Card.user_id == current_user.id))
 
-    return {"e-mail": current_user.email,
+    return {"email": current_user.email,
             "cards": result_cards.scalars().all(),
             "categories": result_categories.scalars().all(),
             "contacts": result_contacts.scalars().all(),
@@ -71,10 +71,10 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
 async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
     result = await db.execute(select(User).where(User.id == current_user.id))
     db_user = result.scalars().first()
-    db_user.phone_number = phone_number.phone_number
     if db_user.phone_number:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail="Phone number already exists.")
+                            detail="Phone number already taken.")
+    db_user.phone_number = phone_number.phone_number
     await db.commit()
     await db.refresh(db_user)
     return {"message": "Phone number updated successfully."}
