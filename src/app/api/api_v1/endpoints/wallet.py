@@ -23,7 +23,7 @@ async def create_wallet_endpoint(wallet_create: WalletCreate, db: AsyncSession =
 async def add_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     async def _add_funds():
-        return await add_funds_to_wallet(db, wallet, current_user)
+        return await add_funds_to_wallet(db, wallet.amount, current_user, wallet.currency)
 
     return await process_request(_add_funds)
 

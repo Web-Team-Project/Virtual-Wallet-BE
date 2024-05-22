@@ -1,3 +1,4 @@
+from typing import List, Tuple
 import uuid
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,13 +27,13 @@ async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> 
     return new_wallet
 
 
-async def add_funds_to_wallet(db: AsyncSession, wallet: WalletCreate, current_user: User) -> Wallet:
-    db_wallet = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+async def add_funds_to_wallet(db: AsyncSession, amount: float, current_user: User, currency: Currency) -> Wallet:
+    db_wallet = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id, Wallet.currency == currency))
     db_wallet = db_wallet.scalars().first()
     if db_wallet is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Wallet not found.")
-    db_wallet.balance += wallet.amount
+    db_wallet.balance += amount
     await db.commit()
     await db.refresh(db_wallet)
     return db_wallet
@@ -53,10 +54,10 @@ async def withdraw_funds_from_wallet(db: AsyncSession, current_user: User, amoun
     return wallet
 
 
-async def check_balance(db: AsyncSession, current_user: User) -> float:
+async def check_balance(db: AsyncSession, current_user: User) -> List[Tuple[float, Currency]]:
     result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
-    wallet = result.scalars().first()
-    if wallet is None:
+    wallets = result.scalars().all()
+    if not wallets:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Wallet not found.")
-    return wallet.balance, wallet.currency
+                            detail="No wallets found.")
+    return [(wallet.balance, wallet.currency) for wallet in wallets]
