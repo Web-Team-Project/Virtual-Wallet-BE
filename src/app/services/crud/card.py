@@ -9,12 +9,19 @@ from uuid import UUID
 
 
 async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
+    result = await db.execute(select(Card).filter_by(number=card.number))
+    existing_card = result.scalar_one_or_none()
+    if existing_card is not None:
+        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, 
+                            detail=f"Card with id {card.number} is taken.")
     db_card = Card(number=card.number, 
                    card_holder=card.card_holder, 
                    exp_date=card.exp_date, 
                    cvv=card.cvv, 
                    design=card.design, 
                    user_id=user_id)
+    
+
     db.add(db_card)
     await db.commit()
     await db.refresh(db_card)
