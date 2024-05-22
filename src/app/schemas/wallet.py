@@ -4,8 +4,6 @@ from app.sql_app.models.enumerate import Currency
 
 
 class WalletBase(BaseModel):
-    user_id: UUID
-    amount: float = 0.0
     currency: Currency
 
 
@@ -16,10 +14,7 @@ class WalletCreate(BaseModel):
 
 class Wallet(WalletBase):
     id: UUID
+    amount: float = 0.0
 
     class Config:
         from_attributes = True
-
-class WalletWithdraw(BaseModel):
-    amount: float
-    currency: Currency

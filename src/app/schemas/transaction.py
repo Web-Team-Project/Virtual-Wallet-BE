@@ -3,6 +3,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 from uuid import UUID
 
+from app.sql_app.models.enumerate import IntervalType
+
 
 class TransactionBase(BaseModel):
     amount: int
@@ -18,13 +20,9 @@ class TransactionBase(BaseModel):
 class TransactionCreate(BaseModel):
     amount: int
     timestamp: datetime
-    is_recurring: bool
     card_id: UUID
     recipient_id: UUID
     category_id: UUID
-    interval: Optional[int] = None
-    next_execution_date: Optional[datetime] = None
-
 
 class Transaction(TransactionBase):
     id: UUID
@@ -45,3 +43,13 @@ class TransactionFilter(BaseModel):
 class TransactionList(BaseModel):
     transactions: List[Transaction]
     total: int
+
+
+class RecurringTransactionCreate(BaseModel):
+    amount: int
+    card_id: UUID
+    recipient_id: UUID
+    category_id: UUID
+    interval: Optional[int] = None
+    interval_type: IntervalType
+    next_execution_date: datetime

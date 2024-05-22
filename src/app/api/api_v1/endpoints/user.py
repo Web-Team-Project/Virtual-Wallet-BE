@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.services.common.utils import get_current_user, process_request
 from app.services.crud.user import block_user, deactivate_user, get_user_by_email, search_users, unblock_user, add_phone, update_user_role, user_info
 from app.sql_app.database import get_db
-from app.schemas.user import User, UserUpdate
+from app.schemas.user import User, UserUpdate, UserBase
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -11,12 +11,9 @@ router = APIRouter()
 
 
 @router.get("/users/info")
-async def get_user_info(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-        
-        async def _get_user_info():
-            return await user_info(db, current_user)
-        
-        return await process_request(_get_user_info)
+async def get_user_info(db: AsyncSession = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
+    user_details = await user_info(db, current_user)
+    return user_details
 
 
 @router.get("/users/{email}")
