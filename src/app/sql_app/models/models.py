@@ -45,7 +45,6 @@ class Card(Base):
     exp_date = Column(Date)
     cvv = Column(String)
     design = Column(String)
-    is_credit = Column(Boolean)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="cards")

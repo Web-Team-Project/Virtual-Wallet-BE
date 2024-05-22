@@ -12,7 +12,7 @@ import pytz
 
 
 async def create_recurring_transaction(db: AsyncSession, transaction_data: RecurringTransactionCreate, sender_id: UUID) -> Transaction:
-    """"Create a new recurring transaction for the user. It will be executed at the specified interval."""
+    """Create a new recurring transaction for the user. It will be executed at the specified interval."""
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:

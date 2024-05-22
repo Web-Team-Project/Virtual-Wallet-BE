@@ -7,7 +7,7 @@ from app.sql_app.models.models import Category
 
 
 async def create_category(db: AsyncSession, category: CategoryCreate, user_id: str):
-    """Create a new category for the user."""
+    """Create a new category for the user. It checks if category with the same name already exists."""
     existing_category = await db.execute(select(Category).where(and_(Category.name == category.name, Category.user_id == user_id)))
     existing_category = existing_category.scalars().first()
     if existing_category is not None:
@@ -21,7 +21,7 @@ async def create_category(db: AsyncSession, category: CategoryCreate, user_id: s
 
 
 async def read_categories(db: AsyncSession, user_id: str):
-    """View all categories for the user."""
+    """View all categories for the user and transactions associated with them."""
     result = await db.execute(select(Category).options(selectinload(Category.transactions)).where(Category.user_id == user_id))
     categories = result.scalars().all()
     return {"categories": categories}

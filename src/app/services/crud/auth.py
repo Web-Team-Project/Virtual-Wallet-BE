@@ -18,6 +18,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 
 
 async def login():
+    """Redirect to Google OAuth2 login page."""
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth"
         "?response_type=code"
@@ -29,6 +30,7 @@ async def login():
 
 
 async def auth_callback(request: Request):
+    """Handle the callback from Google OAuth2."""
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
@@ -68,5 +70,6 @@ async def auth_callback(request: Request):
 
 
 async def logout(request: Request):
+    """Log out the user by removing the session."""
     request.session.pop("user", None)
     return JSONResponse({"message": "Successfully logged out."})

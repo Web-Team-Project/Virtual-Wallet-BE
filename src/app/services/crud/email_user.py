@@ -39,12 +39,14 @@ async def register_with_email(db: AsyncSession, email: str, hashed_password: str
 
 
 async def create_new_user(user: EmailUserCreate, db: AsyncSession):
+    """Register a new user with email, password, and phone number."""
     hashed_password = pwd_context.hash(user.hashed_password)
     db_user = await register_with_email(db, user.email, hashed_password, user.phone_number)
     return db_user
 
 
 async def login(request: Request, login_request: LoginRequest, db: AsyncSession):
+    """User login with email and password. It creates a session for the user."""
     user = await authenticate_user(db, login_request.email, login_request.password)
     if not user:
         raise HTTPException(

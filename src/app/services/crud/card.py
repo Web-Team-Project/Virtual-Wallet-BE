@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from app.schemas.card import CardCreate
 from app.sql_app.models.models import Card
-from app.schemas.user import User
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -9,7 +8,8 @@ from uuid import UUID
 
 
 async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
-    """Create a new card for the user."""
+    """Create a new card for the user. 
+    It checks if card with the same number already exists."""
     result = await db.execute(select(Card).filter_by(number=card.number))
     existing_card = result.scalar_one_or_none()
     if existing_card is not None:
@@ -21,8 +21,6 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
                    cvv=card.cvv, 
                    design=card.design, 
                    user_id=user_id)
-    
-
     db.add(db_card)
     await db.commit()
     await db.refresh(db_card)

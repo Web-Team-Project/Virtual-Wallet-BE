@@ -56,6 +56,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
 
 
 async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user: User) -> Transaction:
+    """Confirm a transaction by the sender so that the recipient can approve it."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -107,6 +108,7 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+    """Approve an incoming transaction by the recipient."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -139,6 +141,7 @@ async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_us
 
 
 async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+    """Reject an incoming transaction by the recipient."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -158,6 +161,7 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
 
 
 async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
+    """Deny a certain transaction by the admin."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="Only admins can deny transactions.")
