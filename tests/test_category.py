@@ -4,7 +4,6 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
-from sqlalchemy.orm import selectinload
 
 from app.schemas.category import CategoryCreate
 from app.services.crud.category import create_category, delete_category, read_categories
