@@ -15,3 +15,9 @@ class Currency(Enum):
     GBP = "GBP"
     BTC = "BTC"
     ETH = "ETH"
+
+
+class IntervalType(Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"

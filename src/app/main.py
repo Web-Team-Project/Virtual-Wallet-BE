@@ -5,7 +5,6 @@ from urllib.parse import urljoin
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
 from app.sql_app.database import get_db
@@ -47,7 +46,7 @@ async def scheduled_task():
         finally:
             await db.close()
 
-scheduler.add_job(scheduled_task, "cron", second=10)
+scheduler.add_job(scheduled_task, "interval", minutes=10)
 
 
 @asynccontextmanager

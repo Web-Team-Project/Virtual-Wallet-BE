@@ -2,7 +2,7 @@ from sqlalchemy import Date, Integer, create_engine
 from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
-from app.sql_app.models.enumerate import Status, Currency
+from app.sql_app.models.enumerate import Status, Currency, IntervalType
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -59,7 +59,6 @@ class Transaction(Base):
     amount = Column(Float)
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
-    is_recurring = Column(Boolean, default=False)
     status = Column(Enum(Status), default="pending")
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
     sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
@@ -106,7 +105,8 @@ class RecurringTransaction(Base):
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)  # Pointing to the users table
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     amount = Column(Float, nullable=False)
-    interval = Column(Integer, nullable=False)
+    interval = Column(Integer, nullable=True)
+    interval_type = Column(Enum(IntervalType), nullable=False)
     next_execution_date = Column(DateTime(timezone=True), nullable=False)
 
     user = relationship("User", back_populates="recurring_transactions", foreign_keys=[user_id])

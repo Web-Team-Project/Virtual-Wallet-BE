@@ -41,7 +41,6 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     new_transaction = Transaction(id=uuid.uuid4(),
                                   amount=transaction_data.amount,
                                   timestamp=transaction_data.timestamp,
-                                  is_recurring=transaction_data.is_recurring,
                                   card_id=transaction_data.card_id,
                                   sender_id=sender_id,
                                   recipient_id=transaction_data.recipient_id,
