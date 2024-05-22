@@ -4,7 +4,6 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
-from app.schemas.wallet import WalletCreate
 from app.sql_app.models.models import User, Wallet
 from app.sql_app.models.enumerate import Currency
 
