@@ -34,11 +34,12 @@ class User(Base):
     wallets = relationship("Wallet", back_populates="user")
     recurring_transactions = relationship("RecurringTransaction", back_populates="user", foreign_keys="[RecurringTransaction.user_id]")
     recurring_received_transactions = relationship("RecurringTransaction", back_populates="recipient", foreign_keys="[RecurringTransaction.recipient_id]")
+
 class Card(Base):
     __tablename__ = "cards"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
-    number = Column(String)
+    number = Column(String, unique=True)
     card_holder = Column(String)
     exp_date = Column(Date)
     cvv = Column(String)

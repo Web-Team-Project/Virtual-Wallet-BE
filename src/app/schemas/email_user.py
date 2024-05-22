@@ -1,39 +1,35 @@
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
-
 from app.schemas.card import Card
+from app.schemas.category import Category
+from app.schemas.contact import Contact
 from app.schemas.transaction import Transaction
 
 
-class UserEmailSchema(BaseModel):
+class EmailUserBase(BaseModel):
     email: EmailStr
     hashed_password: str = Field(..., min_length=8)
     phone_number: str = Field(..., min_length=10, max_length=10)
 
 
-class UserEmailCreate(UserEmailSchema):
+class EmailUserCreate(EmailUserBase):
     pass
 
 
-class UserSchema(UserEmailSchema):
+class EmailUser(EmailUserBase):
     id: UUID
     is_active: Optional[bool] = True
     is_blocked: Optional[bool] = False
     is_admin: Optional[bool] = False
     cards: List[Card] = []
+    categories: List[Category] = []
+    contacts: List[Contact] = []
     transactions: List[Transaction] = []
 
     class Config:
         from_attributes = True
 
-
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-
-class UserInDB(User):
-    hashed_password: str
 
 class LoginRequest(BaseModel):
     email: str
