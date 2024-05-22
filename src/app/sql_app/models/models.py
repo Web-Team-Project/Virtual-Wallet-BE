@@ -35,6 +35,7 @@ class User(Base):
     recurring_transactions = relationship("RecurringTransaction", back_populates="user", foreign_keys="[RecurringTransaction.user_id]")
     recurring_received_transactions = relationship("RecurringTransaction", back_populates="recipient", foreign_keys="[RecurringTransaction.recipient_id]")
 
+
 class Card(Base):
     __tablename__ = "cards"
 
@@ -44,7 +45,6 @@ class Card(Base):
     exp_date = Column(Date)
     cvv = Column(String)
     design = Column(String)
-    is_credit = Column(Boolean)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="cards")
@@ -57,6 +57,7 @@ class Transaction(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     amount = Column(Float)
+    currency = Column(Enum(Currency), default="BGN")
     timestamp = Column(DateTime(timezone=True))
     category = Column(String)
     status = Column(Enum(Status), default="pending")

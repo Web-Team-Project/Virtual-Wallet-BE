@@ -8,18 +8,17 @@ from app.sql_app.models.models import User, Contact
 
 
 async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSession):
+    """Create a new contact for the user."""
     user = await db.execute(select(User).filter(User.id == contact.user_contact_id))
     user = user.scalars().first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
-        
     result = await db.execute(select(Contact).filter(Contact.user_id == current_user.id, Contact.user_contact_id == contact.user_contact_id))
     existing_contact = result.scalars().first()
     if existing_contact:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
                             detail="Contact already exists.")
-        
     db_contact = Contact(**contact.model_dump(), user_id=current_user.id)
     db.add(db_contact)
     await db.commit()
@@ -28,6 +27,7 @@ async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSe
 
 
 async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession, search: str = None):
+    """View all contacts for the user. It also allows searching by email or phone number."""
     query = select(Contact).filter(Contact.user_id == current_user.id)
     if search:
         query = query.filter(or_(User.email.contains(search), User.phone_number.contains(search)))
@@ -42,6 +42,7 @@ async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSess
 
 
 async def read_contact(current_user: User, contact_id: UUID, db: AsyncSession):
+    """View contact's details by id."""
     result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:
@@ -53,6 +54,7 @@ async def read_contact(current_user: User, contact_id: UUID, db: AsyncSession):
 
 
 async def delete_contact(current_user: User, contact_id: UUID, db: AsyncSession):
+    """Delete a contact by id."""
     result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:

@@ -9,6 +9,7 @@ import uuid
 
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
+    """Create a transaction to send money from one user's wallet to another user's wallet."""
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -40,6 +41,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
 
     new_transaction = Transaction(id=uuid.uuid4(),
                                   amount=transaction_data.amount,
+                                  currency=transaction_data.currency,
                                   timestamp=transaction_data.timestamp,
                                   card_id=transaction_data.card_id,
                                   sender_id=sender_id,
@@ -54,6 +56,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
 
 
 async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user: User) -> Transaction:
+    """Confirm a transaction by the sender so that the recipient can approve it."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -69,9 +72,9 @@ async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_us
 
 
 async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
+    """Get all transactions made by a user with the given user_id."""
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
-
 
 async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
     if current_user.is_admin:
@@ -105,6 +108,7 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+    """Approve an incoming transaction by the recipient."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -137,6 +141,7 @@ async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_us
 
 
 async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+    """Reject an incoming transaction by the recipient."""
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -156,6 +161,7 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
 
 
 async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
+    """Deny a certain transaction by the admin."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="Only admins can deny transactions.")

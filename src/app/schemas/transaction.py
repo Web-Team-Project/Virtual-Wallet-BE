@@ -2,15 +2,14 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 from uuid import UUID
-
-from app.sql_app.models.enumerate import IntervalType
+from app.sql_app.models.enumerate import Currency, IntervalType
 
 
 class TransactionBase(BaseModel):
     amount: int
+    currency: Currency
     timestamp: datetime
     category: str
-    is_recurring: bool
     card_id: UUID
     user_id: UUID
     category_id: UUID
@@ -19,13 +18,14 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(BaseModel):
     amount: int
-    timestamp: datetime
+    currency: str
     card_id: UUID
     recipient_id: UUID
     category_id: UUID
 
 class Transaction(TransactionBase):
     id: UUID
+    timestamp: datetime
 
     class Config:
         from_attributes = True

@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
-
 from app.schemas.user import UserBase
 from app.sql_app.models.models import Card, User, Category, Contact, Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +9,7 @@ from app.sql_app.database import engine
 
 
 async def create_user(userinfo):
+    """Create a new user using Google OAuth2 or update the existing one."""
     async with AsyncSession(engine) as session:
         result = await session.execute(select(User).where(User.email == userinfo["email"]))
         user = result.scalars().first()
@@ -45,6 +45,7 @@ async def create_user(userinfo):
 
 
 async def user_info(db: AsyncSession, current_user: UserBase):
+    """View user's email and all associated cards, categories, contacts, and transactions."""
     result_cards = await db.execute(select(Card).where(Card.user_id == current_user.id))
     result_categories = await db.execute(select(Category).where(Category.user_id == current_user.id))
     result_contacts = await db.execute(select(Contact).where(Contact.user_id == current_user.id))
@@ -59,18 +60,21 @@ async def user_info(db: AsyncSession, current_user: UserBase):
 
 
 async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User:
+    """View user's details by id."""
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalars().first()
     return db_user
 
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User:
+    """View user's details by email."""
     result = await db.execute(select(User).where(User.email == email))
     db_user = result.scalars().first()
     return db_user
 
 
 async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
+    """Add a phone number to the user's account if registered without one."""
     result = await db.execute(select(User).where(User.id == current_user.id))
     db_user = result.scalars().first()
     if db_user.phone_number:
@@ -83,6 +87,7 @@ async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
 
 
 async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:
+    """Update user's role to admin if authorized."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -97,6 +102,7 @@ async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) 
 
 
 async def deactivate_user(user_id: UUID, db: AsyncSession, current_user: User) -> User:
+    """Deactivate user's account if authorized. Unable to log in."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -112,6 +118,7 @@ async def deactivate_user(user_id: UUID, db: AsyncSession, current_user: User) -
 
 
 async def block_user(user_id: UUID, db: AsyncSession, current_user: User):
+    """Block user's account if authorized. Unable to send or receive transactions."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -126,6 +133,7 @@ async def block_user(user_id: UUID, db: AsyncSession, current_user: User):
 
 
 async def unblock_user(user_id: UUID, db: AsyncSession, current_user: User):
+    """Unblock user's account if authorized. Able to send and receive transactions."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
@@ -140,13 +148,15 @@ async def unblock_user(user_id: UUID, db: AsyncSession, current_user: User):
 
 
 async def search_users(db: AsyncSession, skip: int, limit: int, current_user: User, search: str = None):
+    """View all users and their details. It also allows searching by email or phone number."""
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="You are not authorized to perform this action.")
-    result = await db.execute(select(User)
-                              .where(or_(User.email.contains(search), User.phone_number.contains(search)))
-                              .offset(skip).limit(limit))
+    if search is None:
+        result = await db.execute(select(User).offset(skip).limit(limit))
+    else:
+        result = await db.execute(select(User)
+                                  .where(or_(User.email.contains(search), User.phone_number.contains(search)))
+                                  .offset(skip).limit(limit))
     users = result.scalars().all()
     return users
-
-# кол към базата за да разбера дали е админ
