@@ -46,7 +46,6 @@ async def update_card(db: AsyncSession, card_id: str, card_data: CardCreate, cur
     if db_card.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this card.")
     
-    # Assume the rest of the update logic is here
     db_card.number = card_data.number
     db_card.card_holder = card_data.card_holder
     db_card.exp_date = card_data.exp_date
