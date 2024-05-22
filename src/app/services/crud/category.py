@@ -7,6 +7,7 @@ from app.sql_app.models.models import Category
 
 
 async def create_category(db: AsyncSession, category: CategoryCreate, user_id: str):
+    """Create a new category for the user."""
     existing_category = await db.execute(select(Category).where(and_(Category.name == category.name, Category.user_id == user_id)))
     existing_category = existing_category.scalars().first()
     if existing_category is not None:
@@ -20,12 +21,14 @@ async def create_category(db: AsyncSession, category: CategoryCreate, user_id: s
 
 
 async def read_categories(db: AsyncSession, user_id: str):
+    """View all categories for the user."""
     result = await db.execute(select(Category).options(selectinload(Category.transactions)).where(Category.user_id == user_id))
     categories = result.scalars().all()
     return {"categories": categories}
 
 
 async def delete_category(db: AsyncSession, category_name: str, user_id: str):
+    """Delete category by name."""
     db_category = await db.execute(select(Category).where(and_(Category.name == category_name, Category.user_id == user_id)))
     db_category = db_category.scalars().first()
     if db_category is None:

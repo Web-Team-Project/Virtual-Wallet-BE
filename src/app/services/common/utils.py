@@ -19,14 +19,14 @@ async def get_current_user(request: Request) -> User:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="User not authenticated.")
     async with AsyncSession(engine) as session:
-        if user.get("email_verified"):
-            result = await session.execute(select(User).where(User.email == user["email"]))
-        else:
-            result = await session.execute(select(User).where(User.email == user["email"], User.email_verified == None))
-        
+        result = await session.execute(select(User).where(User.email == user["email"]))
         db_user = result.scalars().first()
         if db_user:
+            if db_user.email_verified is None or not db_user.email_verified:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail="Email not verified.")
             user["id"] = str(db_user.id)
+            user["is_admin"] = db_user.is_admin
     request.session["user"] = user
     return User(**user)
 

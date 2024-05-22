@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
-
 from app.schemas.user import UserBase
 from app.sql_app.models.models import Card, User, Category, Contact, Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -143,10 +142,11 @@ async def search_users(db: AsyncSession, skip: int, limit: int, current_user: Us
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="You are not authorized to perform this action.")
-    result = await db.execute(select(User)
-                              .where(or_(User.email.contains(search), User.phone_number.contains(search)))
-                              .offset(skip).limit(limit))
+    if search is None:
+        result = await db.execute(select(User).offset(skip).limit(limit))
+    else:
+        result = await db.execute(select(User)
+                                  .where(or_(User.email.contains(search), User.phone_number.contains(search)))
+                                  .offset(skip).limit(limit))
     users = result.scalars().all()
     return users
-
-# кол към базата за да разбера дали е админ

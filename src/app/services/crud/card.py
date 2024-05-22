@@ -9,6 +9,7 @@ from uuid import UUID
 
 
 async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
+    """Create a new card for the user."""
     result = await db.execute(select(Card).filter_by(number=card.number))
     existing_card = result.scalar_one_or_none()
     if existing_card is not None:
@@ -29,6 +30,7 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
 
 
 async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
+    """View card's details by id."""	
     result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if db_card is None:
@@ -38,6 +40,7 @@ async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
 
 
 async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id: UUID):
+    """Update card's details by id."""
     result = await db.execute(select(Card).where(Card.id == card_id), Card.user_id == user_id)
     db_card = result.scalars().first()
     if db_card is None:
@@ -53,6 +56,7 @@ async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id
 
 
 async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
+    """Delete card by id."""
     result = await db.execute(select(Card).where(and_(Card.id == card_id, Card.user_id == user_id)))
     db_card = result.scalars().first()
     if db_card is None:

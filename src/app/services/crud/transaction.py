@@ -9,6 +9,7 @@ import uuid
 
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
+    """Create a transaction to send money from one user's wallet to another user's wallet."""
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -70,9 +71,9 @@ async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_us
 
 
 async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
+    """Get all transactions made by a user with the given user_id."""
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
-
 
 async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
     if current_user.is_admin:
