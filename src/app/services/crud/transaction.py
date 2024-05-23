@@ -9,7 +9,15 @@ import uuid
 
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
-    """Create a transaction to send money from one user's wallet to another user's wallet."""
+    """
+    Create a transaction to send money from one user's wallet to another user's wallet.
+        Parameters:
+            db (AsyncSession): The database session.
+            transaction_data (TransactionCreate): The transaction data.
+            sender_id (UUID): The ID of the sender.
+        Returns:
+            Transaction: The created transaction object.
+    """
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -56,7 +64,15 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
 
 
 async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user: User) -> Transaction:
-    """Confirm a transaction by the sender so that the recipient can approve it."""
+    """
+    Confirm a transaction by the sender so that the recipient can approve it.
+        Parameters:
+            transaction_id (UUID): The ID of the transaction.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The updated transaction object.
+    """
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -72,7 +88,14 @@ async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_us
 
 
 async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
-    """Get all transactions made by a user with the given user_id."""
+    """
+    Get all transactions made by a user with the given user_id.
+        Parameters:
+            db (AsyncSession): The database session.
+            user_id (UUID): The ID of the user.
+        Returns:
+            List[Transaction]: A list of transactions made by the user.
+    """
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
 
@@ -108,7 +131,15 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
-    """Approve an incoming transaction by the recipient."""
+    """
+    Approve an incoming transaction by the recipient.
+        Parameters:
+            db (AsyncSession): The database session.
+            transaction_id (UUID): The ID of the transaction.
+            current_user_id (UUID): The ID of the current user.
+        Returns:
+            Transaction: The updated transaction object.
+    """
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -141,7 +172,15 @@ async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_us
 
 
 async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
-    """Reject an incoming transaction by the recipient."""
+    """
+    Reject an incoming transaction by the recipient.
+        Parameters:
+            db (AsyncSession): The database session.
+            transaction_id (UUID): The ID of the transaction.
+            current_user_id (UUID): The ID of the current user.
+        Returns:
+            Transaction: The updated transaction object.
+    """
     result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
     transaction = result.scalars().first()
     if not transaction:
@@ -161,7 +200,15 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
 
 
 async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
-    """Deny a certain transaction by the admin."""
+    """
+    Deny a certain transaction by the admin.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+            transaction_id (UUID): The ID of the transaction.
+        Returns:
+            dict: A dictionary with the message that the transaction has been denied.
+    """
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="Only admins can deny transactions.")

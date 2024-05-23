@@ -8,7 +8,15 @@ from app.sql_app.models.models import User, Contact
 
 
 async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSession):
-    """Create a new contact for the user."""
+    """
+    Create a new contact for the user.
+        Parameters:
+            current_user (User): The current user.
+            contact (ContactCreate): The contact data.
+            db (AsyncSession): The database session.
+        Returns:
+            dict: A dictionary with the contact details.
+    """
     user = await db.execute(select(User).filter(User.id == contact.user_contact_id))
     user = user.scalars().first()
     if not user:
@@ -27,7 +35,17 @@ async def create_contact(current_user: User, contact: ContactCreate, db: AsyncSe
 
 
 async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSession, search: str = None):
-    """View all contacts for the user. It also allows searching by email or phone number."""
+    """
+    View all contacts for the user. It also allows searching by email or phone number.
+        Parameters:
+            current_user (User): The current user.
+            skip (int): The number of contacts to skip.
+            limit (int): The number of contacts to return.
+            db (AsyncSession): The database session.
+            search (str): The search query.
+        Returns:
+            list: A list of contacts with their details.
+    """
     query = select(Contact).filter(Contact.user_id == current_user.id)
     if search:
         query = query.filter(or_(User.email.contains(search), User.phone_number.contains(search)))
@@ -42,7 +60,15 @@ async def read_contacts(current_user: User, skip: int, limit: int, db: AsyncSess
 
 
 async def read_contact(current_user: User, contact_id: UUID, db: AsyncSession):
-    """View contact's details by id."""
+    """
+    View contact's details by id.
+        Parameters:
+            current_user (User): The current user.
+            contact_id (UUID): The ID of the contact.
+            db (AsyncSession): The database session.
+        Returns:
+            dict: A dictionary with the contact details.
+    """
     result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:
@@ -54,7 +80,15 @@ async def read_contact(current_user: User, contact_id: UUID, db: AsyncSession):
 
 
 async def delete_contact(current_user: User, contact_id: UUID, db: AsyncSession):
-    """Delete a contact by id."""
+    """
+    Delete a contact by id.
+        Parameters:
+            current_user (User): The current user.
+            contact_id (UUID): The ID of the contact.
+            db (AsyncSession): The database session.
+        Returns:
+            dict: A dictionary with the message that the contact has been deleted.
+    """
     result = await db.execute(select(Contact).filter(Contact.id == contact_id, Contact.user_id == current_user.id))
     contact = result.scalars().first()
     if contact is None:

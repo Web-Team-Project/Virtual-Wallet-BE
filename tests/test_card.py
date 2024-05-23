@@ -18,7 +18,7 @@ async def test_create_card_success():
     
     card_data = CardCreate(number="1234567890123456", 
                            card_holder="Test User", 
-                           exp_date=date(2024, 11, 1), 
+                           exp_date="01/24", 
                            cvv="123", 
                            design="Design1")
     user_id = uuid4()
@@ -39,7 +39,7 @@ async def test_create_card_returns_error():
     
     card_data = CardCreate(number="1234567890123456", 
                            card_holder="Test User", 
-                           exp_date=date(2024, 11, 1), 
+                           exp_date="01/24", 
                            cvv="123", 
                            design="Design1")
     user_id = uuid4()
@@ -57,7 +57,7 @@ async def test_read_card_success():
     card_id = uuid4()
     user_id = uuid4()
     mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date=date(2024, 11, 1),
+                     card_holder="Test User", exp_date="01/24",
                      cvv="123", design="Design1")
 
     mock_result = MagicMock()
@@ -92,11 +92,11 @@ async def test_update_card_success():
     card_id = uuid4()
     user_id = uuid4()
     mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date=date(2024, 11, 1),
+                     card_holder="Test User", exp_date="01/24",
                      cvv="123", design="Design1")
     updated_card_data = CardCreate(number="6543210987654321",
                                    card_holder="Updated User",
-                                   exp_date=date(2025, 12, 1),
+                                   exp_date="01/24",
                                    cvv="321",
                                    design="Design2")
 
@@ -122,6 +122,7 @@ async def test_update_card_success():
     assert result.cvv == updated_card_data.cvv
     assert result.design == updated_card_data.design
 
+
 @pytest.mark.asyncio
 async def test_update_card_not_found():
     db = MagicMock(spec=AsyncSession)
@@ -129,7 +130,7 @@ async def test_update_card_not_found():
     user_id = uuid4()
     updated_card_data = CardCreate(number="6543210987654321",
                                    card_holder="Updated User",
-                                   exp_date=date(2025, 12, 1),
+                                   exp_date="01/24",
                                    cvv="321",
                                    design="Design2")
 
@@ -153,20 +154,21 @@ async def test_update_card_not_found():
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
     assert excinfo.value.detail == "Card not found."
 
-# @pytest.mark.asyncio
-# async def test_update_card_unauthorized():
-#     db = MagicMock(spec=AsyncSession)
-#     card_id = uuid4()
-#     card_owner_id = uuid4()
-#     current_user_id = uuid4()
-#     mock_card = Card(id=card_id, user_id=card_owner_id, number="1234567890123456",
-#                      card_holder="Test User", exp_date=date(2024, 11, 1),
-#                      cvv="123", design="Design1")
-#     updated_card_data = CardCreate(number="6543210987654321",
-#                                    card_holder="Updated User",
-#                                    exp_date=date(2025, 12, 1),
-#                                    cvv="321",
-#                                    design="Design2")
+
+@pytest.mark.asyncio
+async def test_update_card_unauthorized():
+    db = MagicMock(spec=AsyncSession)
+    card_id = uuid4()
+    card_owner_id = uuid4()
+    current_user_id = uuid4()
+    mock_card = Card(id=card_id, user_id=card_owner_id, number="1234567890123456",
+                     card_holder="Test User", exp_date=date(2024, 11, 1),
+                     cvv="123", design="Design1")
+    updated_card_data = CardCreate(number="6543210987654321",
+                                   card_holder="Updated User",
+                                   exp_date="01/24",
+                                   cvv="321",
+                                   design="Design2")
 
 #     current_user = User(id=current_user_id,
 #                         sub="user_sub",
@@ -195,7 +197,7 @@ async def test_delete_card_success():
     card_id = uuid4()
     user_id = uuid4()
     mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date=date(2024, 11, 1),
+                     card_holder="Test User", exp_date="01/24",
                      cvv="123", design="Design1")
 
     mock_result = MagicMock()

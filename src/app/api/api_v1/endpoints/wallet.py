@@ -13,6 +13,15 @@ router = APIRouter()
 @router.post("/wallet/")
 async def create_wallet_endpoint(wallet_create: WalletBase, db: AsyncSession = Depends(get_db),
                                  current_user: User = Depends(get_current_user)):
+    """
+    Create a new wallet for the user.
+        Parameters:
+            wallet_create (WalletBase): The wallet data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Wallet: The created wallet object.
+    """
     async def _create_wallet():
         return await create_wallet(db, current_user.id, wallet_create.currency)
 
@@ -21,7 +30,15 @@ async def create_wallet_endpoint(wallet_create: WalletBase, db: AsyncSession = D
 
 @router.post("/wallets/{user_id}/add")
 async def add_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Add funds to the user's wallet.
+        Parameters:
+            wallet (WalletCreate): The wallet data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Wallet: The updated wallet object.
+    """
     async def _add_funds():
         return await add_funds_to_wallet(db, wallet.amount, current_user, wallet.currency)
 
@@ -31,7 +48,15 @@ async def add_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db), cu
 @router.post("/wallets/withdraw")
 async def withdraw_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db),
                          current_user: User = Depends(get_current_user)):
-
+    """
+    Withdraw funds from the user's wallet.
+        Parameters:
+            wallet (WalletCreate): The wallet data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Wallet: The updated wallet object.
+    """
     async def _withdraw_funds():
         return await withdraw_funds_from_wallet(db, current_user, wallet.amount, wallet.currency)
 
@@ -40,7 +65,14 @@ async def withdraw_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db
 
 @router.get("/wallets/balance")
 async def get_balance(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Check the user's wallet balance.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Wallet: The wallet object.
+    """
     async def _get_balance():
         return await check_balance(db, current_user)
 

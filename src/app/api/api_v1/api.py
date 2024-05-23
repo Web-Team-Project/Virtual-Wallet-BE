@@ -39,6 +39,12 @@ api_router.include_router(
 )
 
 api_router.include_router(
+    recurring_transaction.router,
+    prefix="",
+    tags=["Recurring Transactions"]
+)
+
+api_router.include_router(
     category.router,
     prefix="",
     tags=["Category"]
@@ -54,10 +60,4 @@ api_router.include_router(
     wallet.router,
     prefix="",
     tags=["Wallets"],
-)
-
-api_router.include_router(
-    recurring_transaction.router,
-    prefix="",
-    tags=["Recurring Transactions"]
 )

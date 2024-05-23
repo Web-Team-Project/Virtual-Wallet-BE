@@ -9,7 +9,15 @@ from app.sql_app.models.enumerate import Currency
 
 
 async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> Wallet:
-    """Create a new wallet for the user with the specified currency."""
+    """
+    Create a new wallet for the user with the specified currency.
+        Parameters:
+            db (AsyncSession): The database session.
+            user_id (UUID): The ID of the user.
+            currency (Currency): The currency of the wallet.
+        Returns:
+            Wallet: The created wallet object.
+    """
     result = await db.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
     wallet = result.scalars().first()
     if wallet:
@@ -40,7 +48,16 @@ async def add_funds_to_wallet(db: AsyncSession, amount: float, current_user: Use
 
 
 async def withdraw_funds_from_wallet(db: AsyncSession, current_user: User, amount: float, currency: Currency) -> Wallet:
-    """Withdraw funds from the user's wallet."""
+    """
+    Withdraw funds from the user's wallet.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+            amount (float): The amount to withdraw.
+            currency (Currency): The currency to withdraw.
+        Returns:
+            Wallet: The updated wallet object.
+    """
     result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id, Wallet.currency == currency))
     wallet = result.scalars().first()
     if wallet is None:
@@ -56,7 +73,14 @@ async def withdraw_funds_from_wallet(db: AsyncSession, current_user: User, amoun
 
 
 async def check_balance(db: AsyncSession, current_user: User) -> List[Tuple[float, Currency]]:
-    """Check the balance of all wallets for the user."""
+    """
+    Check the balance of all wallets for the user.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            List[Tuple[float, Currency]]: A list of tuples with the balance and currency of the wallets.
+    """
     result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
     wallets = result.scalars().all()
     if not wallets:
