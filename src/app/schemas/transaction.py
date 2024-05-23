@@ -18,10 +18,11 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(BaseModel):
     amount: int
-    currency: str
+    currency: str 
     card_id: UUID
     recipient_id: UUID
     category_id: UUID
+    timestamp: datetime 
 
 class Transaction(TransactionBase):
     id: UUID
