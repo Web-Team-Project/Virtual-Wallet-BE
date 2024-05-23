@@ -127,16 +127,16 @@ def verify_code(phone_number: str, code: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to verify code.")
 
 
-def validate_phone_number(phone_number: str):
-    try:
-        phone_number_info = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
-        if phone_number_info.caa["type"] in ["mobile", "voip"]:
-            return True
-        else:
-            return False
-    except Exception as e:
-        print(f"Failed to validate phone number. Error: {e}")
-        return False
+# def validate_phone_number(phone_number: str):
+#     try:
+#         phone_number_info = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
+#         if phone_number_info.caa["type"] in ["mobile", "voip"]:
+#             return True
+#         else:
+#             return False
+#     except Exception as e:
+#         print(f"Failed to validate phone number. Error: {e}")
+#         return False
 
 
 async def add_phone(phone_number: str, db: AsyncSession, current_user: User):
