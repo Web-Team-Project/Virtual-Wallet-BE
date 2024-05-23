@@ -25,6 +25,9 @@ async def get_current_user(request: Request) -> User:
             if db_user.email_verified is None or not db_user.email_verified:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                     detail="Email not verified.")
+            if not db_user.is_active:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail="Account is deactivated.")
             user["id"] = str(db_user.id)
             user["is_admin"] = db_user.is_admin
     request.session["user"] = user
