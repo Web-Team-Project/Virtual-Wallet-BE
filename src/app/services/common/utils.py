@@ -2,6 +2,8 @@ from typing import Callable, Any
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, Request, status
 import logging
+
+from itsdangerous import URLSafeTimedSerializer
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +35,10 @@ async def get_current_user(request: Request) -> User:
     request.session["user"] = user
     return User(**user)
 
+
+def generate_verification_token(email: str) -> str:
+    serializer = URLSafeTimedSerializer("yoursecretkey")
+    return serializer.dumps(email, salt="email-verification-salt")
 
 
 async def process_request(execute_fn: Callable) -> Any | JSONResponse:
