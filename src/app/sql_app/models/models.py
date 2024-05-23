@@ -1,5 +1,4 @@
-from sqlalchemy import Date, Integer, create_engine
-from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum
+from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum, Integer, create_engine
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
 from app.sql_app.models.enumerate import Status, Currency, IntervalType
@@ -43,7 +42,7 @@ class Card(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     number = Column(String, unique=True)
     card_holder = Column(String)
-    exp_date = Column(Date)
+    exp_date = Column(String)
     cvv = Column(String)
     design = Column(String)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
