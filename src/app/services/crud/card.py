@@ -8,8 +8,15 @@ from uuid import UUID
 
 
 async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
-    """Create a new card for the user. 
-    It checks if card with the same number already exists."""
+    """
+    Create a new card for the user. It checks if card with the same number already exists.
+        Parameters:
+            db (AsyncSession): The database session.
+            card (CardCreate): The card data.
+            user_id (UUID): The ID of the user.
+        Returns:
+            Card: The created card object.
+    """
     result = await db.execute(select(Card).filter_by(number=card.number))
     existing_card = result.scalar_one_or_none()
     if existing_card is not None:
@@ -28,7 +35,15 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
 
 
 async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
-    """View card's details by id."""	
+    """
+    View card's details by id.
+        Parameters:
+            db (AsyncSession): The database session.
+            card_id (UUID): The ID of the card.
+            user_id (UUID): The ID of the user.
+        Returns:
+            Card: The card object.
+    """	
     result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
     db_card = result.scalars().first()
     if db_card is None:
@@ -38,7 +53,16 @@ async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
 
 
 async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id: UUID):
-    """Update card's details by id."""
+    """
+    Update card's details by id.
+        Parameters:
+            db (AsyncSession): The database session.
+            card_id (UUID): The ID of the card.
+            card (CardCreate): The card data.
+            user_id (UUID): The ID of the user.
+        Returns:
+            Card: The updated card object.
+    """
     result = await db.execute(select(Card).where(Card.id == card_id), Card.user_id == user_id)
     db_card = result.scalars().first()
     if db_card is None:
@@ -54,7 +78,15 @@ async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id
 
 
 async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
-    """Delete card by id."""
+    """
+    Delete card by id.
+        Parameters:
+            db (AsyncSession): The database session.
+            card_id (UUID): The ID of the card.
+            user_id (UUID): The ID of the user.
+        Returns:
+            dict: A message confirming the deletion.
+    """
     result = await db.execute(select(Card).where(and_(Card.id == card_id, Card.user_id == user_id)))
     db_card = result.scalars().first()
     if db_card is None:

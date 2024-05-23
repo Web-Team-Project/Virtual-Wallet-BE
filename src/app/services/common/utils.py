@@ -2,7 +2,6 @@ from typing import Callable, Any
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, Request, status
 import logging
-
 from itsdangerous import URLSafeTimedSerializer
 from .custom_response import WebErrorResponse
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 async def get_current_user(request: Request) -> User:
+    """
+    Get the current user from the session.
+        Parameters:
+            request (Request): The request object.
+        Returns:
+            User: The current user.
+    """
     user = request.session.get("user")
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,11 +43,25 @@ async def get_current_user(request: Request) -> User:
 
 
 def generate_verification_token(email: str) -> str:
+    """
+    Create a token for email verification.
+        Parameters:
+            email (str): The email address.
+        Returns:
+            str: The token.
+    """
     serializer = URLSafeTimedSerializer("yoursecretkey")
     return serializer.dumps(email, salt="email-verification-salt")
 
 
 async def process_request(execute_fn: Callable) -> Any | JSONResponse:
+    """
+    Process the request and handle exceptions.
+        Parameters:
+            execute_fn (Callable): The function to execute.
+        Returns:
+            Any | JSONResponse: The result of the function or an error response.
+    """
     try:
         return await execute_fn()
     except SQLAlchemyError as ex:

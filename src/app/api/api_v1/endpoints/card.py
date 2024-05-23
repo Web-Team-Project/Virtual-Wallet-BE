@@ -14,7 +14,15 @@ router = APIRouter()
 
 @router.post("/cards")
 async def create(card: CardCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Create a new card for the user.
+        Parameters:
+            card (CardCreate): The card data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Card: The created card object.
+    """
     async def _create_card() -> Card:
         return await create_card(db, card, current_user.id)
 
@@ -23,7 +31,15 @@ async def create(card: CardCreate, db: AsyncSession = Depends(get_db), current_u
 
 @router.get("/cards/{card_id}")
 async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    View the details of a card for the user.
+        Parameters:
+            card_id (UUID): The ID of the card to view.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Card: The card object.
+    """
     async def _read_card():
         return await read_card(db, card_id, current_user.id)
 
@@ -32,7 +48,16 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
 
 @router.put("/cards/{card_id}")
 async def update(card_id: UUID, card: CardCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Update the details of a card for the user.
+        Parameters:
+            card_id (UUID): The ID of the card to update.
+            card (CardCreate): The card data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Card: The updated card object.
+    """
     async def _update_card():
         return await update_card(db, card_id, card, current_user.id)
 
@@ -41,7 +66,15 @@ async def update(card_id: UUID, card: CardCreate, db: AsyncSession = Depends(get
 
 @router.delete("/cards/{card_id}")
 async def delete(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Delete a card for the user.
+        Parameters:
+            card_id (UUID): The ID of the card to delete.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Card: The deleted card object.
+    """
     async def _delete_card():
         return await delete_card(db, card_id, current_user.id)
 

@@ -4,6 +4,12 @@ from email.mime.text import MIMEText
 
 
 def send_verification_email(email: str, verification_link: str):
+    """
+    Send an email with a verification link to the user's email.
+        Parameters:
+            email (str): The email of the user.
+            verification_link (str): The verification link.
+    """
     password = "uichtbofletmfdfm"
     msg = MIMEMultipart()
     msg["From"] = "k.v.ivanov98@gmail.com"

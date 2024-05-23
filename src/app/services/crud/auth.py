@@ -18,7 +18,9 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 
 
 async def login():
-    """Redirect to Google OAuth2 login page."""
+    """
+    Redirect to Google OAuth2 login page.
+    """
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth"
         "?response_type=code"
@@ -30,7 +32,13 @@ async def login():
 
 
 async def auth_callback(request: Request):
-    """Handle the callback from Google OAuth2."""
+    """
+    Handle the callback from Google OAuth2.
+        Parameters:
+            request (Request): The request object.
+        Returns:
+            RedirectResponse: Redirects to the Swagger UI.
+    """
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
@@ -70,6 +78,12 @@ async def auth_callback(request: Request):
 
 
 async def logout(request: Request):
-    """Log out the user by removing the session."""
+    """
+    Log out the user by removing the session.
+        Parameters:
+            request (Request): The request object.
+        Returns:
+            JSONResponse: A JSON response with the message that the user is logged out.
+    """
     request.session.pop("user", None)
     return JSONResponse({"message": "Successfully logged out."})

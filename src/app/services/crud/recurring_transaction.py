@@ -12,7 +12,15 @@ import pytz
 
 
 async def create_recurring_transaction(db: AsyncSession, transaction_data: RecurringTransactionCreate, sender_id: UUID) -> Transaction:
-    """Create a new recurring transaction for the user. It will be executed at the specified interval."""
+    """
+    Create a new recurring transaction for the user. It will be executed at the specified interval.
+        Parameters:
+            db (AsyncSession): The database session.
+            transaction_data (RecurringTransactionCreate): The recurring transaction data.
+            sender_id (UUID): The ID of the sender.
+        Returns:
+            RecurringTransaction: The created recurring transaction object.
+    """
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -41,19 +49,16 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Recur
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Recipient's wallet not found.")
-
-    new_transaction = RecurringTransaction(
-        id=uuid.uuid4(),
-        user_id=sender_id,
-        card_id=transaction_data.card_id,
-        recipient_id=transaction_data.recipient_id,
-        category_id=transaction_data.category_id,
-        amount=transaction_data.amount,
-        interval=transaction_data.interval,
-        interval_type=transaction_data.interval_type,
-        next_execution_date=transaction_data.next_execution_date
-    )
     
+    new_transaction = RecurringTransaction(id=uuid.uuid4(),
+                                           user_id=sender_id,
+                                           card_id=transaction_data.card_id,
+                                           recipient_id=transaction_data.recipient_id,
+                                           category_id=transaction_data.category_id,
+                                           amount=transaction_data.amount,
+                                           interval=transaction_data.interval,
+                                           interval_type=transaction_data.interval_type,
+                                           next_execution_date=transaction_data.next_execution_date) 
     db.add(new_transaction)
     await db.commit()
     await db.refresh(new_transaction)
@@ -61,37 +66,31 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Recur
 
 
 async def process_recurring_transactions(db: AsyncSession):
-    """Process any recurring transactions that are due for payment."""
+    """
+    Process any recurring transactions that are due for payment.
+        Parameters:
+            db (AsyncSession): The database session.
+        """
     current_time = datetime.now(pytz.utc)
-
-    result = await db.execute(
-        select(RecurringTransaction)
-        .where(and_(RecurringTransaction.next_execution_date <= current_time))
-    )
+    result = await db.execute(select(RecurringTransaction).where(and_(RecurringTransaction.next_execution_date <= current_time)))
     due_recurring_transactions = result.scalars().all()
-
     for recurring_transaction in due_recurring_transactions:
-        transaction_data = TransactionCreate(
-            amount=recurring_transaction.amount,
-            timestamp=datetime.now(pytz.utc),
-            card_id=recurring_transaction.card_id,
-            recipient_id=recurring_transaction.recipient_id,
-            category_id=recurring_transaction.category_id,
-        )
+        transaction_data = TransactionCreate(amount=recurring_transaction.amount,
+                                             timestamp=datetime.now(pytz.utc),
+                                             card_id=recurring_transaction.card_id,
+                                             recipient_id=recurring_transaction.recipient_id,
+                                             category_id=recurring_transaction.category_id,)
         try:
             await create_transaction(db, transaction_data, recurring_transaction.user_id)
-
             if recurring_transaction.interval_type == IntervalType.DAILY:
                 recurring_transaction.next_execution_date += timedelta(days=1)
             elif recurring_transaction.interval_type == IntervalType.WEEKLY:
                 recurring_transaction.next_execution_date += timedelta(weeks=1)
             elif recurring_transaction.interval_type == IntervalType.MONTHLY:
                 next_month = recurring_transaction.next_execution_date.month % 12 + 1
-                next_year = recurring_transaction.next_execution_date.year + (
-                            recurring_transaction.next_execution_date.month // 12)
-                recurring_transaction.next_execution_date = recurring_transaction.next_execution_date.replace(
-                    month=next_month, year=next_year
-                )
+                next_year = recurring_transaction.next_execution_date.year + \
+                            (recurring_transaction.next_execution_date.month // 12)
+                recurring_transaction.next_execution_date = recurring_transaction.next_execution_date.replace(month=next_month, year=next_year)
             db.add(recurring_transaction)
             await db.commit()
         except Exception as e:

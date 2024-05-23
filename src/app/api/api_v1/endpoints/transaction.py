@@ -20,7 +20,18 @@ async def view_transactions(filter: TransactionFilter = Depends(),
                             limit: int = 100, 
                             db: AsyncSession = Depends(get_db), 
                             current_user: User = Depends(get_current_user)):
-    
+    """
+    View the transactions created by the user. 
+    The transactions can be filtered by date, amount, category, and status.
+        Parameters:
+            filter (TransactionFilter): The filter to apply to the transactions.
+            skip (int): The number of transactions to skip.
+            limit (int): The number of transactions to return.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            List[Transaction]: The list of transactions.
+    """
     async def _get_transactions() -> List[Transaction]:
         return await get_transactions(db, current_user, filter, skip, limit)
 
@@ -30,7 +41,16 @@ async def view_transactions(filter: TransactionFilter = Depends(),
 @router.post("/transaction")
 async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncSession = Depends(get_db),
                                       current_user: User = Depends(get_current_user)):
-
+    """
+    Create a new transaction for the user. 
+    The transaction will be used to track the user's expenses and income.
+        Parameters:
+            transaction (TransactionCreate): The transaction data.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The created transaction object.
+    """
     async def _create_transaction() -> Transaction:
         return await create_transaction(db, transaction, current_user.id)
 
@@ -39,7 +59,16 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
 
 @router.put("/transactions/{transaction_id}/confirm")
 async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    
+    """
+    Confirm a transaction for the user. 
+    The transaction will be marked as confirmed and will be included in the user's expense and income reports.
+        Parameters:
+            transaction_id (UUID): The ID of the transaction.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The confirmed transaction object.
+    """
     async def _confirm_transaction() -> Transaction:
         return await confirm_transaction(transaction_id, db, current_user)
 
@@ -49,6 +78,16 @@ async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
 @router.post("/transaction/{transaction_id}/approve")
 async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db),
                               current_user: User = Depends(get_current_user)):
+    """
+    Approve a transaction for the user. 
+    The transaction will be marked as approved and will be included in the user's expense and income reports.
+        Parameters:
+            transaction_id (UUID): The ID of the transaction.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The approved transaction object.
+    """
     async def _approve_transaction() -> Transaction:
         return await approve_transaction(db, transaction_id, current_user.id)
 
@@ -57,6 +96,16 @@ async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
 
 @router.post("/transaction/{transaction_id}/reject")
 async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Reject a transaction for the user. 
+    The transaction will be marked as rejected and will not be included in the user's expense and income reports.
+        Parameters:
+            transaction_id (UUID): The ID of the transaction.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The rejected transaction object.
+    """
     async def _reject_transaction() -> Transaction:
         return await reject_transaction(db, transaction_id, current_user.id)
     
@@ -65,7 +114,16 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
 
 @router.put("/transaction/{transaction_id}/deny")
 async def deny_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-
+    """
+    Deny a transaction for the user. 
+    The transaction will be marked as denied and will not be included in the user's expense and income reports.
+        Parameters:
+            transaction_id (UUID): The ID of the transaction.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            Transaction: The denied transaction object.
+    """
     async def _deny_transaction() -> Transaction:
         return await deny_transaction(db, transaction_id, current_user.id)
 
