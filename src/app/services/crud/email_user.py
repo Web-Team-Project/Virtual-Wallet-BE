@@ -1,4 +1,5 @@
 from fastapi.security import OAuth2PasswordBearer
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Request, status
 from passlib.context import CryptContext
@@ -45,6 +46,27 @@ async def register_with_email(email: str, hashed_password: str, phone_number: st
         "email": user.email,
         "phone_number": user.phone_number,
     }
+
+
+async def verify_email(token: str, db: AsyncSession):
+    serializer = URLSafeTimedSerializer("yoursecretkey")
+    try:
+        email = serializer.loads(token, salt="email-verification-salt")
+    except SignatureExpired:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification link expired.")
+    except BadSignature:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification link.")
+    
+    user = await get_user_by_email(email, db)
+    if not user or user.verification_token != token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token.")
+    
+    user.email_verified = True
+    user.verification_token = None
+    await db.commit()
+    await db.refresh(user)
+    
+    return {"message": "Email verified successfully"}
 
 
 async def create_new_user(user: EmailUserCreate, db: AsyncSession):

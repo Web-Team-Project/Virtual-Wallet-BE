@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.services.common.utils import process_request
-from app.services.crud.email_user import create_new_user, login
+from app.services.crud.email_user import create_new_user, login, verify_email
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.crud.user import get_user_by_email
 from app.sql_app.database import get_db
@@ -31,22 +31,9 @@ async def email_login(request: Request, login_request: LoginRequest, db: AsyncSe
 
 
 @router.get("/verify")
-async def verify_email_endpoint(token: str, db: AsyncSession = Depends(get_db)):
-    serializer = URLSafeTimedSerializer("your_secret_key")
-    try:
-        email = serializer.loads(token, salt="email-verification-salt")
-    except SignatureExpired:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification link expired.")
-    except BadSignature:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification link.")
+async def email_verify(token: str, db: AsyncSession = Depends(get_db)):
     
-    user = await get_user_by_email(email, db)
-    if not user or user.verification_token != token:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token.")
+    async def _verify_email():
+        return await verify_email(token, db)
     
-    user.email_verified = True
-    user.verification_token = None
-    await db.commit()
-    await db.refresh(user)
-    
-    return {"message": "Email verified successfully"}
+    return await process_request(_verify_email)
