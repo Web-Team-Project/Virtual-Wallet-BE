@@ -8,13 +8,13 @@ from uuid import UUID
 from app.sql_app.database import engine
 from twilio.rest import Client
 
-# Twilio configuration
+
+# Move to verification
 account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
 auth_token = '6f254b356df7c637591eb1e9894f1f40'
 verify_service_sid = 'VA1648ac6fd5482fec87703ffc90248228'
-
-# Initialize Twilio client
 client = Client(account_sid, auth_token)
+
 
 async def create_user(userinfo):
     """
@@ -52,7 +52,7 @@ async def create_user(userinfo):
                 locale=userinfo["locale"],
                 is_active=True,
                 is_blocked=False,
-                is_admin=False,)
+                is_admin=False)
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
@@ -81,7 +81,14 @@ async def user_info(db: AsyncSession, current_user: UserBase):
 
 
 async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User:
-    """View user's details by id."""
+    """
+    View user's details by id.
+        Parameters:
+            user_id (UUID): The ID of the user.
+            db (AsyncSession): The database session.
+        Returns:
+            User: The user details.
+    """
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalars().first()
     return db_user
@@ -127,18 +134,6 @@ def verify_code(phone_number: str, code: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to verify code.")
 
 
-# def validate_phone_number(phone_number: str):
-#     try:
-#         phone_number_info = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
-#         if phone_number_info.caa["type"] in ["mobile", "voip"]:
-#             return True
-#         else:
-#             return False
-#     except Exception as e:
-#         print(f"Failed to validate phone number. Error: {e}")
-#         return False
-
-
 async def add_phone(phone_number: str, db: AsyncSession, current_user: User):
     """
     Add a phone number to the user's account if registered without one. The phone number must be unique.
@@ -178,6 +173,7 @@ async def verify_phone(code: str, db: AsyncSession, current_user: UserBase):
         return {"message": "Phone number verified successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code.")
+
 
 async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:
     """
