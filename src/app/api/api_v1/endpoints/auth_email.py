@@ -1,11 +1,9 @@
-from fastapi import Depends, Request, APIRouter, status, HTTPException
+from fastapi import Depends, Request, APIRouter
 from fastapi import APIRouter, Depends
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.services.common.utils import process_request
 from app.services.crud.email_user import create_new_user, login, verify_email
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.crud.user import get_user_by_email
 from app.sql_app.database import get_db
 
 

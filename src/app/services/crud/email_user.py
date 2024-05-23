@@ -20,10 +20,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def authenticate_user(db: AsyncSession, email: str, password: str):
     user = await get_user_by_email(email, db)
-    if not user:
-        return False
-    if not pwd_context.verify(password, user.hashed_password):
-        return False
+    if not user or not pwd_context.verify(password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, 
+                            detail="Incorrect email or password.")
+    if not user.email_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Email not verified. Please verify your email.")
     return user
 
 
@@ -49,6 +51,7 @@ async def register_with_email(email: str, hashed_password: str, phone_number: st
 
 
 async def verify_email(token: str, db: AsyncSession):
+    """Verify the email of the user using the token sent to the user's email."""
     serializer = URLSafeTimedSerializer("yoursecretkey")
     try:
         email = serializer.loads(token, salt="email-verification-salt")
@@ -82,7 +85,6 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     request.session["user"] = {"id": str(user.id), "email": user.email, "phone_number": user.phone_number}
