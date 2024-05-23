@@ -9,6 +9,9 @@ from app.services.crud.user import get_user_by_email
 from app.services.crud.verification import send_verification_email
 from app.sql_app.models.models import User
 
+account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
+auth_token = '6f254b356df7c637591eb1e9894f1f40'
+twilio_phone_number = 'your_twilio_phone_number'
 
 SECRET_KEY = "yoursecretkey"
 ALGORITHM = "HS256"
@@ -38,7 +41,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     return user
 
 
-async def register_with_email(email: str, hashed_password: str, phone_number: str, db: AsyncSession):
+async def register_with_email(email: str, hashed_password: str, db: AsyncSession):
     """
     Register a new user with email, password, and phone number.
         Parameters:
@@ -52,20 +55,19 @@ async def register_with_email(email: str, hashed_password: str, phone_number: st
     user = await get_user_by_email(email, db)
     if user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists.")
-    
+
     token = generate_verification_token(email)
-    user = User(email=email, hashed_password=hashed_password, phone_number=phone_number, verification_token=token)
+    user = User(email=email, hashed_password=hashed_password, verification_token=token)
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    
-    verification_link = f"http://localhost:8080/swagger#/verify?token={token}"
+
+    verification_link = f"http://localhost:8080/api/v1/verify?token={token}"
     send_verification_email(user.email, verification_link)
-    
+
     return {
         "id": user.id,
         "email": user.email,
-        "phone_number": user.phone_number,
     }
 
 
@@ -108,7 +110,7 @@ async def create_new_user(user: EmailUserCreate, db: AsyncSession):
             dict: A dictionary with the user details.
     """
     hashed_password = pwd_context.hash(user.hashed_password)
-    db_user = await register_with_email(user.email, hashed_password, user.phone_number, db)
+    db_user = await register_with_email(user.email, hashed_password, db)
     return db_user
 
 

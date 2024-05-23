@@ -37,5 +37,9 @@ class User(UserBase):
         from_attributes = True
 
 
-class UserUpdate(BaseModel):
-    phone_number: str = Field(..., min_length=10, max_length=10)
+class AddPhoneRequest(BaseModel):
+    phone_number: str = Field(..., min_length=10, max_length=15)
+
+
+class VerifyPhoneRequest(BaseModel):
+    code: str

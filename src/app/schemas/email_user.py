@@ -10,8 +10,6 @@ from app.schemas.transaction import Transaction
 class EmailUserBase(BaseModel):
     email: EmailStr
     hashed_password: str = Field(..., min_length=8)
-    phone_number: str = Field(..., min_length=10, max_length=10)
-
 
 class EmailUserCreate(EmailUserBase):
     pass

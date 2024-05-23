@@ -1,9 +1,10 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends
 from app.services.common.utils import get_current_user, process_request
-from app.services.crud.user import block_user, deactivate_user, get_user_by_email, search_users, unblock_user, add_phone, update_user_role, user_info
+from app.services.crud.user import block_user, deactivate_user, get_user_by_email, search_users, unblock_user, \
+    add_phone, update_user_role, user_info, verify_phone
 from app.sql_app.database import get_db
-from app.schemas.user import User, UserUpdate, UserBase
+from app.schemas.user import User, AddPhoneRequest, UserBase, VerifyPhoneRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -41,7 +42,8 @@ async def get_user(email: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/users/phone")
-async def add_phone_number(phone_number: UserUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def add_phone_number(add_phone_request: AddPhoneRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    phone_number = add_phone_request.phone_number
     """
     Add a phone number to the user's account if registered without one. The phone number must be unique.
         Parameters:
@@ -53,9 +55,17 @@ async def add_phone_number(phone_number: UserUpdate, db: AsyncSession = Depends(
     """
     async def _add_phone():
         return await add_phone(phone_number, db, current_user)
-    
+
     return await process_request(_add_phone)
 
+@router.post("/verify_phone")
+async def verify_phone_endpoint(verify_phone_request: VerifyPhoneRequest, db: AsyncSession = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
+    code = verify_phone_request.code
+
+    async def _verify_phone():
+        return await verify_phone(code, db, current_user)
+
+    return await process_request(_verify_phone)
 
 @router.put("/users/{user_id}/role")
 async def update_role(user_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):

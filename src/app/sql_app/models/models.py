@@ -21,6 +21,7 @@ class User(Base):
     hashed_password = Column(String)
     locale = Column(String)
     phone_number = Column(String, unique=True, index=True)
+    phone_verified = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     is_blocked = Column(Boolean, default=False)

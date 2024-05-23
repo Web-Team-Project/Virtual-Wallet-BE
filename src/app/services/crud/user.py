@@ -6,7 +6,15 @@ from app.sql_app.models.models import Card, User, Category, Contact, Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.sql_app.database import engine
+from twilio.rest import Client
 
+# Twilio configuration
+account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
+auth_token = '6f254b356df7c637591eb1e9894f1f40'
+verify_service_sid = 'VA1648ac6fd5482fec87703ffc90248228'
+
+# Initialize Twilio client
+client = Client(account_sid, auth_token)
 
 async def create_user(userinfo):
     """
@@ -93,7 +101,45 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     return db_user
 
 
-async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
+async def get_user_by_phone(phone_number: str, db: AsyncSession):
+    query = await db.execute(select(User).where(User.phone_number == phone_number))
+    return query.scalar_one_or_none()
+
+
+def send_verification_code(phone_number: str):
+    try:
+        verification = client.verify.v2.services(verify_service_sid).verifications.create(to=phone_number, channel='sms')
+        print("Verification code sent successfully! SID:", verification.sid)
+    except Exception as e:
+        print("Failed to send verification code:", str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to send verification code.")
+
+
+def verify_code(phone_number: str, code: str):
+    try:
+        verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(to=phone_number, code=code)
+        if verification_check.status == 'approved':
+            return True
+        else:
+            return False
+    except Exception as e:
+        print("Failed to verify code:", str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to verify code.")
+
+
+def validate_phone_number(phone_number: str):
+    try:
+        phone_number_info = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
+        if phone_number_info.caa["type"] in ["mobile", "voip"]:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Failed to validate phone number. Error: {e}")
+        return False
+
+
+async def add_phone(phone_number: str, db: AsyncSession, current_user: User):
     """
     Add a phone number to the user's account if registered without one. The phone number must be unique.
         Parameters:
@@ -103,16 +149,35 @@ async def add_phone(phone_number, db: AsyncSession, current_user: User) -> User:
         Returns:
             dict: A dictionary with the message that the phone number is added successfully.
     """
-    result = await db.execute(select(User).where(User.id == current_user.id))
-    db_user = result.scalars().first()
-    if db_user.phone_number:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail="Phone number already taken.")
-    db_user.phone_number = phone_number.phone_number
-    await db.commit()
-    await db.refresh(db_user)
-    return {"message": "Phone number updated successfully."}
+    user = await get_user_by_email(current_user.email, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
+    user.phone_number = phone_number
+    user.phone_verified = False
+    await db.commit()
+    await db.refresh(user)
+
+    send_verification_code(phone_number)
+    return {"message": "Verification code sent to your phone."}
+
+
+async def verify_phone(code: str, db: AsyncSession, current_user: UserBase):
+    user = await get_user_by_email(current_user.email, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    phone_number = user.phone_number
+    if not phone_number:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User has no phone number registered.")
+
+    if verify_code(phone_number, code):
+        user.phone_verified = True
+        await db.commit()
+        await db.refresh(user)
+        return {"message": "Phone number verified successfully"}
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code.")
 
 async def update_user_role(user_id: UUID, db: AsyncSession, current_user: User) -> User:
     """
