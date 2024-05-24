@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
-
 from app.core.config import get_settings
 from app.schemas.user import UserBase
 from app.sql_app.models.models import Card, User, Category, Contact, Transaction
@@ -9,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.sql_app.database import engine
 from twilio.rest import Client
+
 
 settings = get_settings()
 client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
@@ -107,11 +107,24 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
 
 
 async def get_user_by_phone(phone_number: str, db: AsyncSession):
+    """
+    View user's details by phone number.
+        Parameters:
+            phone_number (str): The phone number of the user.
+            db (AsyncSession): The database session.
+        Returns:
+            User: The user details.
+    """
     query = await db.execute(select(User).where(User.phone_number == phone_number))
     return query.scalar_one_or_none()
 
 
 def send_verification_code(phone_number: str):
+    """
+    Send a verification code to the user's phone number.
+        Parameters:
+            phone_number (str): The phone number to send the code.
+    """
     try:
         verification = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel='sms')
         print("Verification code sent successfully! SID:", verification.sid)
@@ -121,6 +134,14 @@ def send_verification_code(phone_number: str):
 
 
 def verify_code(phone_number: str, code: str):
+    """
+    Verify the code sent to the user's phone number.
+        Parameters:
+            phone_number (str): The phone number to verify.
+            code (str): The verification code.
+        Returns:
+            bool: True if the code is verified, False otherwise.
+    """
     try:
         verification_check = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code)
         if verification_check.status == 'approved':
@@ -156,14 +177,21 @@ async def add_phone(phone_number: str, db: AsyncSession, current_user: User):
 
 
 async def verify_phone(code: str, db: AsyncSession, current_user: UserBase):
+    """
+    Verify the phone number using the code sent to the user's phone.
+        Parameters:
+            code (str): The verification code.
+            db (AsyncSession): The database session.
+            current_user (UserBase): The current user.
+        Returns:
+            dict: A dictionary with the message that the phone number is verified successfully.
+    """
     user = await get_user_by_email(current_user.email, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-
     phone_number = user.phone_number
     if not phone_number:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User has no phone number registered.")
-
     if verify_code(phone_number, code):
         user.phone_verified = True
         await db.commit()

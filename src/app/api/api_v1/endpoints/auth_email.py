@@ -2,7 +2,7 @@ from fastapi import Depends, Request, APIRouter
 from fastapi import APIRouter, Depends
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.services.common.utils import process_request
-from app.services.crud.email_user import create_new_user, login, verify_email
+from app.services.crud.auth_email import create_new_user, login, verify_email
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.sql_app.database import get_db
 

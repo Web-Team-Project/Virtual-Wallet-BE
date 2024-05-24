@@ -2,14 +2,14 @@
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth, user, card, transaction, category, contact, wallet, auth_email, recurring_transaction
+    auth_google, user, card, transaction, category, contact, wallet, auth_email, recurring_transaction
 )
 
 api_router = APIRouter()
 
 
 api_router.include_router(
-    auth.router,
+    auth_google.router,
     prefix="",
     tags=["Authentication"],
 )
