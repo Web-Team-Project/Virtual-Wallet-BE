@@ -3,12 +3,12 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, JSONResponse
+
+from app.core.config import get_settings
 from app.services.crud.user import create_user
 
 
-GOOGLE_CLIENT_ID = "1047295969598-97ot5u7518b43ng7tsi701iuq394m0vt.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-REDIRECT_URI = "http://localhost:8080/api/v1/auth/callback"
+settings = get_settings()
 
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
@@ -24,8 +24,8 @@ async def login():
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth"
         "?response_type=code"
-        f"&client_id={GOOGLE_CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
+        f"&client_id={settings.GOOGLE_CLIENT_ID}"
+        f"&redirect_uri={settings.REDIRECT_URI}"
         "&scope=openid%20email%20profile"
     )
     return RedirectResponse(google_auth_url)
@@ -47,9 +47,9 @@ async def auth_callback(request: Request):
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
         "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": settings.REDIRECT_URI,
         "grant_type": "authorization_code",
     }
     async with AsyncClient() as client:

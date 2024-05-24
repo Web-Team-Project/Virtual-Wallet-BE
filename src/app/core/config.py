@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
     VERSION: Optional[str] = "9.9.9.9"
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    REDIRECT_URI: str
+    ACCOUNT_SID: str
+    AUTH_TOKEN: str
+    VERIFY_SERVICE_SID: str
+    DATABASE_URL: str
 
     @field_validator("BACKEND_CORS_ORIGINS", check_fields=False)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:

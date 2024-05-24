@@ -9,9 +9,6 @@ from app.services.crud.user import get_user_by_email
 from app.services.crud.verification import send_verification_email
 from app.sql_app.models.models import User
 
-account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
-auth_token = '6f254b356df7c637591eb1e9894f1f40'
-twilio_phone_number = 'your_twilio_phone_number'
 
 SECRET_KEY = "yoursecretkey"
 ALGORITHM = "HS256"

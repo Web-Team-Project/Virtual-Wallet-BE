@@ -1,6 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select, update
 from sqlalchemy.future import select
+
+from app.core.config import get_settings
 from app.schemas.user import UserBase
 from app.sql_app.models.models import Card, User, Category, Contact, Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,12 +10,8 @@ from uuid import UUID
 from app.sql_app.database import engine
 from twilio.rest import Client
 
-
-# Move to verification
-account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
-auth_token = '6f254b356df7c637591eb1e9894f1f40'
-verify_service_sid = 'VA1648ac6fd5482fec87703ffc90248228'
-client = Client(account_sid, auth_token)
+settings = get_settings()
+client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
 
 
 async def create_user(userinfo):
