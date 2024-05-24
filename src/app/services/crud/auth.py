@@ -3,7 +3,6 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, JSONResponse
-
 from app.core.config import get_settings
 from app.services.crud.user import create_user
 

@@ -5,6 +5,7 @@ from app.sql_app.models.enumerate import Status, Currency, IntervalType
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.core.config import get_settings
+from app.sql_app.database import engine
 
 
 class User(Base):
@@ -26,7 +27,6 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     is_blocked = Column(Boolean, default=False)
-
 
     cards = relationship("Card", back_populates="user")
     sent_transactions = relationship("Transaction", back_populates="sender", foreign_keys="[Transaction.sender_id]")
@@ -76,7 +76,6 @@ class Transaction(Base):
     wallet = relationship("Wallet", back_populates="transactions")
 
 
-
 class Category(Base):
     __tablename__ = "categories"
 
@@ -105,7 +104,7 @@ class RecurringTransaction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
-    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)  # Pointing to the users table
+    recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     amount = Column(Float, nullable=False)
     interval = Column(Integer, nullable=True)
@@ -130,7 +129,7 @@ class Wallet(Base):
     transactions = relationship("Transaction", back_populates="wallet", foreign_keys="[Transaction.wallet_id]")
 
 settings = get_settings()
-# SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
-sync_engine = create_engine(settings.OLD_DATABASE_URL)
 
-Base.metadata.create_all(bind=sync_engine)
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
