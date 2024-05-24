@@ -18,6 +18,14 @@ async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> 
         Returns:
             Wallet: The created wallet object.
     """
+
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalars().first()
+
+    if not user.phone_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Phone number not verified. Cannot create wallet.")
+
     result = await db.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
     wallet = result.scalars().first()
     if wallet:
