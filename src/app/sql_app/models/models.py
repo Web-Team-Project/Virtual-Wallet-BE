@@ -4,6 +4,7 @@ from app.sql_app.database import Base
 from app.sql_app.models.enumerate import Status, Currency, IntervalType
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from app.core.config import get_settings
 
 
 class User(Base):
@@ -128,8 +129,8 @@ class Wallet(Base):
     user = relationship("User", back_populates="wallets")
     transactions = relationship("Transaction", back_populates="wallet", foreign_keys="[Transaction.wallet_id]")
 
-
-SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
-sync_engine = create_engine(SYNC_DATABASE_URL)
+settings = get_settings()
+# SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
+sync_engine = create_engine(settings.DATABASE_URL)
 
 Base.metadata.create_all(bind=sync_engine)
