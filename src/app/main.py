@@ -35,27 +35,27 @@ def _setup_cors(p_app: FastAPI) -> None:
 scheduler = AsyncIOScheduler()
 
 
-async def scheduled_task():
-    async for db in get_db():
-        try:
-            await process_recurring_transactions(db)
-            await db.commit()
-        except Exception as e:
-            await db.rollback()
-            raise e
-        finally:
-            await db.close()
+# async def scheduled_task():
+#     async for db in get_db():
+#         try:
+#             await process_recurring_transactions(db)
+#             await db.commit()
+#         except Exception as e:
+#             await db.rollback()
+#             raise e
+#         finally:
+#             await db.close()
 
-scheduler.add_job(scheduled_task, "interval", minutes=10)
+# scheduler.add_job(scheduled_task, "interval", minutes=10)
 
 
-@asynccontextmanager
-async def lifespan(p_app: FastAPI):
-    print("Starting FastAPI application...")
-    scheduler.start()
-    yield
-    print("Shutting down FastAPI application...")
-    scheduler.shutdown()
+# @asynccontextmanager
+# async def lifespan(p_app: FastAPI):
+#     print("Starting FastAPI application...")
+#     scheduler.start()
+#     yield
+#     print("Shutting down FastAPI application...")
+#     scheduler.shutdown()
 
 
 def _create_app() -> FastAPI:
