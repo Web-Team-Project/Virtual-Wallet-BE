@@ -13,7 +13,7 @@ from app.core.config import get_settings
 from app.services.crud.recurring_transaction import process_recurring_transactions
 
 
-SECRET_KEY = "supersecretkey"
+settings = get_settings()
 
 
 def _setup_cors(p_app: FastAPI) -> None:
@@ -71,7 +71,7 @@ def _create_app() -> FastAPI:
         prefix=get_settings().API_V1_STR,
     )
 
-    app_.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+    app_.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
     return app_
 
