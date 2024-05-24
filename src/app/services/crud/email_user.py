@@ -6,12 +6,8 @@ from passlib.context import CryptContext
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.services.common.utils import generate_verification_token
 from app.services.crud.user import get_user_by_email
-from app.services.crud.verification import send_verification_email
+from app.services.common.verification import send_verification_email
 from app.sql_app.models.models import User
-
-
-SECRET_KEY = "yoursecretkey"
-ALGORITHM = "HS256"
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -59,7 +55,7 @@ async def register_with_email(email: str, hashed_password: str, db: AsyncSession
     await db.commit()
     await db.refresh(user)
 
-    verification_link = f"http://localhost:8080/api/v1/verify?token={token}"
+    verification_link = f"https://virtual-wallet-87bx.onrender.com/api/v1/verify?token={token}"
     send_verification_email(user.email, verification_link)
 
     return {

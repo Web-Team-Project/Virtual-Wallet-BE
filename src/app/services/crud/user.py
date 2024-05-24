@@ -113,7 +113,7 @@ async def get_user_by_phone(phone_number: str, db: AsyncSession):
 
 def send_verification_code(phone_number: str):
     try:
-        verification = client.verify.v2.services(verify_service_sid).verifications.create(to=phone_number, channel='sms')
+        verification = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel='sms')
         print("Verification code sent successfully! SID:", verification.sid)
     except Exception as e:
         print("Failed to send verification code:", str(e))
@@ -122,7 +122,7 @@ def send_verification_code(phone_number: str):
 
 def verify_code(phone_number: str, code: str):
     try:
-        verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(to=phone_number, code=code)
+        verification_check = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code)
         if verification_check.status == 'approved':
             return True
         else:

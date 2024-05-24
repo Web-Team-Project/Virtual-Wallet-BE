@@ -12,7 +12,7 @@ def send_verification_email(email: str, verification_link: str):
     """
     password = "uichtbofletmfdfm"
     msg = MIMEMultipart()
-    msg["From"] = "k.v.ivanov98@gmail.com"
+    msg["From"] = "virtualwallet720@gmail.com"
     msg["To"] = email
     msg["Subject"] = "Email Verification"
 
