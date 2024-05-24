@@ -24,7 +24,7 @@ if __name__ == "__main__":
         "--port",
         type=int,
         default=8000,
-        help="port to listen on (default: 8080)",
+        help="port to listen on (default: 8000)",
     )
     config = parser.parse_args()
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "app.main:app",
-        host="localhost",
+        host="0.0.0.0",
         port=config.port,
         reload=reload_enabled,
         reload_dirs=reload_dirs,
