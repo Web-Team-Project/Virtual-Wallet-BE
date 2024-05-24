@@ -1,9 +1,10 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import RecurringTransactionCreate
 from app.schemas.user import User
 from app.services.common.utils import get_current_user, process_request
-from app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions
+from app.services.crud.recurring_transaction import cancel_recurring_transaction, create_recurring_transaction, get_recurring_transactions
 from app.sql_app.database import get_db
 
 
@@ -30,18 +31,37 @@ async def create_recurring_transaction_endpoint(recurring_transaction: Recurring
     return await process_request(_create_recurring_transaction)
 
 
-@router.put("/recurring_transaction/process")
-async def process_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db)):
+@router.get("/recurring_transaction")
+async def get_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db),
+                                              current_user: User = Depends(get_current_user)):
     """
-    Process the recurring transactions for the user that are due.
+    Get all recurring transactions set by the user.
         Parameters:
             db (AsyncSession): The database session.
+            current_user (User): The current user.
         Returns:
-            dict: A message confirming the processing.
+            List[RecurringTransaction]: The list of recurring transactions.
     """
-    async def _process_recurring_transactions():
-        return await process_recurring_transactions(db)
+    async def _get_recurring_transactions():
+        return await get_recurring_transactions(db, current_user.id)
 
-    return await process_request(_process_recurring_transactions)
+    return await process_request(_get_recurring_transactions)
 
 
+@router.delete("/recurring_transaction/cancel")
+async def cancel_recurring_transaction_endpoint(recurring_transaction_id: UUID, 
+                                                db: AsyncSession = Depends(get_db),
+                                                current_user: User = Depends(get_current_user)):
+    """
+    Cancel a recurring transaction set by the user.
+        Parameters:
+            recurring_transaction_id (str): The ID of the recurring transaction to cancel.
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            dict: A message confirming the cancellation.
+    """
+    async def _cancel_recurring_transaction():
+        return await cancel_recurring_transaction(db, recurring_transaction_id, current_user.id)
+    
+    return await process_request(_cancel_recurring_transaction)

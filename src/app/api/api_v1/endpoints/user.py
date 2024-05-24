@@ -58,14 +58,27 @@ async def add_phone_number(add_phone_request: AddPhoneRequest, db: AsyncSession 
 
     return await process_request(_add_phone)
 
+
 @router.post("/verify_phone")
-async def verify_phone_endpoint(verify_phone_request: VerifyPhoneRequest, db: AsyncSession = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
+async def verify_phone_endpoint(verify_phone_request: VerifyPhoneRequest, 
+                                db: AsyncSession = Depends(get_db), 
+                                current_user: UserBase = Depends(get_current_user)):
+    """
+    Verify the phone number of the user.
+        Parameters:
+            verify_phone_request (VerifyPhoneRequest): The verification code.
+            db (AsyncSession): The database session.
+            current_user (UserBase): The current user.
+        Returns:
+            dict: A message confirming the verification.
+    """
     code = verify_phone_request.code
 
     async def _verify_phone():
         return await verify_phone(code, db, current_user)
 
     return await process_request(_verify_phone)
+
 
 @router.put("/users/{user_id}/role")
 async def update_role(user_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):

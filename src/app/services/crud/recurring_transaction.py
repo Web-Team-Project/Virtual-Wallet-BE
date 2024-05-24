@@ -96,3 +96,39 @@ async def process_recurring_transactions(db: AsyncSession):
         except Exception as e:
             await db.rollback()
             raise e
+        
+
+async def get_recurring_transactions(db: AsyncSession, current_user: User):
+    """
+    Get all recurring transactions set by the user.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            List[RecurringTransaction]: The list of recurring transactions.
+    """
+    result = await db.execute(select(RecurringTransaction).where(RecurringTransaction.user_id == current_user.id))
+    return result.scalars().all()
+
+
+async def cancel_recurring_transaction(db: AsyncSession, recurring_transaction_id: UUID, user_id: UUID):
+    """
+    Cancel a recurring transaction.
+        Parameters:
+            db (AsyncSession): The database session.
+            recurring_transaction_id (UUID): The ID of the recurring transaction to be cancelled.
+            user_id (UUID): The ID of the user.
+        Returns:
+            RecurringTransaction: The cancelled recurring transaction object.
+    """
+    result = await db.execute(select(RecurringTransaction).where(RecurringTransaction.id == recurring_transaction_id))
+    recurring_transaction = result.scalars().first()
+    if not recurring_transaction:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                            detail="Recurring transaction not found.")
+    if recurring_transaction.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="User does not have permission to cancel this recurring transaction.")
+    await db.delete(recurring_transaction)
+    await db.commit()
+    return recurring_transaction
