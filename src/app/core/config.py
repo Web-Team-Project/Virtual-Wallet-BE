@@ -2,6 +2,10 @@ from functools import lru_cache
 from typing import List, Optional, Union
 from pydantic import field_validator, AnyHttpUrl
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
