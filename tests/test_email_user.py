@@ -7,13 +7,23 @@ from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.sql_app.models.models import User
 
 
-@pytest.mark.asyncio
-async def test_authenticate_user_with_valid_credentials():
+@pytest.fixture
+def db():
     db = MagicMock(spec=AsyncSession)
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock()))
+    return db
+
+
+@pytest.fixture
+def mock_user():
     mock_user = MagicMock(spec=User)
     mock_user.hashed_password = "hashed_password"
     mock_user.email_verified = True
+    return mock_user
 
+
+@pytest.mark.asyncio
+async def test_authenticate_user_with_valid_credentials(db, mock_user):
     mock_pwd_context = MagicMock()
     mock_pwd_context.verify = AsyncMock(return_value=True)
 
@@ -25,15 +35,8 @@ async def test_authenticate_user_with_valid_credentials():
 
 
 @pytest.mark.asyncio
-async def test_authenticate_user_with_unverified_email():
-    db = MagicMock(spec=AsyncSession)
-    mock_user = MagicMock(spec=User)
-    mock_user.hashed_password = "hashed_password"
+async def test_authenticate_user_with_unverified_email(db, mock_user):
     mock_user.email_verified = False
-
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    db.execute.return_value = mock_result
 
     with patch("app.services.crud.email_user.pwd_context") as mock_pwd_context:
         mock_pwd_context.verify.return_value = True
@@ -49,8 +52,7 @@ async def test_authenticate_user_with_unverified_email():
 
 
 @pytest.mark.asyncio
-async def test_register_with_email_new_user():
-    db = MagicMock(spec=AsyncSession)
+async def test_register_with_email_new_user(db):
     db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
 
     email = "user@example.com"
@@ -73,11 +75,8 @@ async def test_register_with_email_new_user():
 
 
 @pytest.mark.asyncio
-async def test_register_with_email_existing_user():
-    db = MagicMock(spec=AsyncSession)
-    mock_user = MagicMock(spec=User)
-
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=mock_user)))
+async def test_register_with_email_existing_user(db, mock_user):
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user)))
 
     email = "user@example.com"
     hashed_password = "hashed_password"
@@ -90,9 +89,7 @@ async def test_register_with_email_existing_user():
 
 
 @pytest.mark.asyncio
-async def test_verify_email_with_valid_token():
-    db = MagicMock(spec=AsyncSession)
-    mock_user = MagicMock(spec=User)
+async def test_verify_email_with_valid_token(db, mock_user):
     mock_user.verification_token = "valid_token"
 
     db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user)))
@@ -113,9 +110,7 @@ async def test_verify_email_with_valid_token():
 
 
 @pytest.mark.asyncio
-async def test_verify_email_with_invalid_token():
-    db = MagicMock(spec=AsyncSession)
-
+async def test_verify_email_with_invalid_token(db):
     token = "invalid_token"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -126,9 +121,7 @@ async def test_verify_email_with_invalid_token():
 
 
 @pytest.mark.asyncio
-async def test_verify_email_with_no_user():
-    db = MagicMock(spec=AsyncSession)
-
+async def test_verify_email_with_no_user(db):
     db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
 
     token = "valid_token"
@@ -138,8 +131,7 @@ async def test_verify_email_with_no_user():
 
 
 @pytest.mark.asyncio
-async def test_create_new_user():
-    db = MagicMock(spec=AsyncSession)
+async def test_create_new_user(db):
     user_data = EmailUserCreate(email="user@example.com", hashed_password="password")
 
     mock_user = {"email": user_data.email}
@@ -150,9 +142,7 @@ async def test_create_new_user():
 
 
 @pytest.mark.asyncio
-async def test_login_with_valid_credentials():
-    db = MagicMock(spec=AsyncSession)
-    mock_user = MagicMock(spec=User)
+async def test_login_with_valid_credentials(db, mock_user):
     mock_user.email = "user@example.com"
     mock_user.password = "password"
     mock_user.email_verified = True
@@ -167,10 +157,9 @@ async def test_login_with_valid_credentials():
     assert request.session["user"]["email"] == login_request.email
     assert result["access_token"] == login_request.email
 
-@pytest.mark.asyncio
-async def test_login_with_invalid_credentials():
-    db = MagicMock(spec=AsyncSession)
 
+@pytest.mark.asyncio
+async def test_login_with_invalid_credentials(db):
     login_request = LoginRequest(email="user@example.com", password="wrongpassword")
     request = MagicMock()
 
