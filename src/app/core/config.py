@@ -1,7 +1,5 @@
-
 from functools import lru_cache
 from typing import List, Optional, Union
-
 from pydantic import field_validator, AnyHttpUrl
 from pydantic_settings import BaseSettings
 
@@ -17,6 +15,7 @@ class Settings(BaseSettings):
     AUTH_TOKEN: str
     VERIFY_SERVICE_SID: str
     DATABASE_URL: str
+    OLD_DATABASE_URL: str
 
     @field_validator("BACKEND_CORS_ORIGINS", check_fields=False)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:

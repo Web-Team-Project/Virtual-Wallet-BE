@@ -131,6 +131,6 @@ class Wallet(Base):
 
 settings = get_settings()
 # SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/virtual-wallet-db"
-sync_engine = create_engine(settings.DATABASE_URL)
+sync_engine = create_engine(settings.OLD_DATABASE_URL)
 
 Base.metadata.create_all(bind=sync_engine)
