@@ -33,7 +33,7 @@ async def view_transactions(filter: TransactionFilter = Depends(),
             List[Transaction]: The list of transactions.
     """
     async def _get_transactions() -> List[Transaction]:
-        return await get_transactions(db, current_user, filter, skip, limit)
+        return await get_transactions(db, current_user.id, filter, skip, limit)
 
     return await process_request(_get_transactions)
 
@@ -70,7 +70,7 @@ async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
             Transaction: The confirmed transaction object.
     """
     async def _confirm_transaction() -> Transaction:
-        return await confirm_transaction(transaction_id, db, current_user)
+        return await confirm_transaction(transaction_id, db, current_user.id)
 
     return await process_request(_confirm_transaction)
 
