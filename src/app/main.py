@@ -23,9 +23,7 @@ def _setup_cors(p_app: FastAPI) -> None:
     if get_settings().BACKEND_CORS_ORIGINS:
         p_app.add_middleware(
             CORSMiddleware,
-            allow_origins=[
-                str(origin) for origin in get_settings().BACKEND_CORS_ORIGINS
-            ],
+            allow_origins=["*"],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],

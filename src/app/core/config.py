@@ -10,7 +10,6 @@ load_dotenv()
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["*"]
     VERSION: Optional[str] = "9.9.9.9"
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
