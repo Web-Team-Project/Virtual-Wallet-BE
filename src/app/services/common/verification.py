@@ -10,7 +10,7 @@ def send_verification_email(email: str, verification_link: str):
             email (str): The email of the user.
             verification_link (str): The verification link.
     """
-    password = "uichtbofletmfdfm"
+    password = "dlspgryievxpkcsc"
     msg = MIMEMultipart()
     msg["From"] = "virtualwallet720@gmail.com"
     msg["To"] = email

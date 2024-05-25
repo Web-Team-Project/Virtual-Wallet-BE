@@ -1,5 +1,4 @@
-import asyncio
-from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum, Integer, create_engine
+from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum, Integer
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
 from app.sql_app.models.enumerate import Status, Currency, IntervalType
@@ -128,6 +127,7 @@ class Wallet(Base):
 
     user = relationship("User", back_populates="wallets")
     transactions = relationship("Transaction", back_populates="wallet", foreign_keys="[Transaction.wallet_id]")
+
 
 settings = get_settings()
 

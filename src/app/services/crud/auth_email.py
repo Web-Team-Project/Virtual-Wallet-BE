@@ -77,14 +77,15 @@ async def verify_email(token: str, db: AsyncSession):
     try:
         email = serializer.loads(token, salt="email-verification-salt")
     except SignatureExpired:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification link expired.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Verification link expired.")
     except BadSignature:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification link.")
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Invalid verification link.")
     user = await get_user_by_email(email, db)
     if not user or user.verification_token != token:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification token.")
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="Invalid verification token.")
     user.email_verified = True
     user.verification_token = None
     await db.commit()
