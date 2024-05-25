@@ -22,7 +22,7 @@ def _setup_cors(p_app: FastAPI) -> None:
     """
     p_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*", "http://localhost:3000", "https://global-payment-system.onrender.com"],
+        allow_origins=["http://localhost:3000", "https://global-payment-system.onrender.com"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
