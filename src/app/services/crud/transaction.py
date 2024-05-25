@@ -99,6 +99,7 @@ async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     result = await db.execute(select(Transaction).where(Transaction.sender_id == user_id))
     return result.scalars().all()
 
+
 async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
     if current_user.is_admin:
         query = select(Transaction)
@@ -127,7 +128,8 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
 
     total = await db.execute(query.with_only_columns(func.count()))
     transactions = await db.execute(query.offset(skip).limit(limit))
-    return TransactionList(transactions=transactions.scalars().all(), total=total.scalar())
+    transactions_list = transactions.scalars().all() if transactions.scalars().first() is not None else []
+    return TransactionList(transactions=transactions_list, total=total.scalar() if total else 0)
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
