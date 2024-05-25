@@ -52,7 +52,7 @@ async def create_user(userinfo):
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
-            return user  
+             
 # # Move to verification
 # account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
 # auth_token = '6f254b356df7c637591eb1e9894f1f40'
