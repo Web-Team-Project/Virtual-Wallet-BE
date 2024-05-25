@@ -3,7 +3,7 @@ Boot FastApi app
 """
 from urllib.parse import urljoin
 from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
