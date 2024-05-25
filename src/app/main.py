@@ -20,14 +20,13 @@ def _setup_cors(p_app: FastAPI) -> None:
     """
     Set all CORS enabled origins
     """
-    if get_settings().BACKEND_CORS_ORIGINS:
-        p_app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    p_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 scheduler = AsyncIOScheduler()

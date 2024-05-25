@@ -20,13 +20,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     OLD_DATABASE_URL: str
 
-    @field_validator("BACKEND_CORS_ORIGINS", check_fields=False)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        else:
-            return v
-
     PROJECT_NAME: str = "virtual wallet"
 
     PYDEVD: bool = False
