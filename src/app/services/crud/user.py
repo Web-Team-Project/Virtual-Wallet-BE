@@ -9,10 +9,8 @@ from uuid import UUID
 from app.sql_app.database import engine
 from twilio.rest import Client
 
-
 settings = get_settings()
 client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
-
 
 async def create_user(userinfo):
     """
@@ -55,6 +53,57 @@ async def create_user(userinfo):
             await session.commit()
             await session.refresh(new_user)
 
+# # Move to verification
+# account_sid = 'ACf171aad298a58f6fbf992c0d10e884e6'
+# auth_token = '6f254b356df7c637591eb1e9894f1f40'
+# verify_service_sid = 'VA1648ac6fd5482fec87703ffc90248228'
+# client = Client(account_sid, auth_token)
+
+
+# async def create_user(userinfo: dict, db: AsyncSession):
+#     """
+#     Create a new user or update an existing user based on the provided userinfo.
+#     """
+#     result = await db.execute(select(User).where(User.email == userinfo["email"]))
+#     user = result.scalars().first()
+    
+#     if user:
+#         stmt = (
+#             update(User)
+#             .where(User.email == userinfo["email"])
+#             .values(
+#                 sub=userinfo["sub"],
+#                 name=userinfo["name"],
+#                 given_name=userinfo["given_name"],
+#                 family_name=userinfo["family_name"],
+#                 picture=userinfo["picture"],
+#                 email_verified=userinfo["email_verified"],
+#                 locale=userinfo["locale"],
+#                 is_active=True,
+#                 is_blocked=False,
+#                 is_admin=user.is_admin,
+#             )
+#         )
+#         await db.execute(stmt)
+#     else:
+#         user = User(
+#             sub=userinfo["sub"],
+#             name=userinfo["name"],
+#             given_name=userinfo["given_name"],
+#             family_name=userinfo["family_name"],
+#             picture=userinfo["picture"],
+#             email=userinfo["email"],
+#             email_verified=userinfo["email_verified"],
+#             locale=userinfo["locale"],
+#             is_admin=False,
+#             is_active=True,
+#             is_blocked=False,
+#         )
+#         db.add(user)
+    
+#     await db.commit()
+#     await db.refresh(user)
+#     return user
 
 async def user_info(db: AsyncSession, current_user: UserBase):
     """
@@ -107,26 +156,13 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
 
 
 async def get_user_by_phone(phone_number: str, db: AsyncSession):
-    """
-    View user's details by phone number.
-        Parameters:
-            phone_number (str): The phone number of the user.
-            db (AsyncSession): The database session.
-        Returns:
-            User: The user details.
-    """
     query = await db.execute(select(User).where(User.phone_number == phone_number))
     return query.scalar_one_or_none()
 
 
 def send_verification_code(phone_number: str):
-    """
-    Send a verification code to the user's phone number.
-        Parameters:
-            phone_number (str): The phone number to send the code.
-    """
     try:
-        verification = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel='sms')
+        verification = client.verify.v2.services(verify_service_sid).verifications.create(to=phone_number, channel='sms')
         print("Verification code sent successfully! SID:", verification.sid)
     except Exception as e:
         print("Failed to send verification code:", str(e))
@@ -134,16 +170,8 @@ def send_verification_code(phone_number: str):
 
 
 def verify_code(phone_number: str, code: str):
-    """
-    Verify the code sent to the user's phone number.
-        Parameters:
-            phone_number (str): The phone number to verify.
-            code (str): The verification code.
-        Returns:
-            bool: True if the code is verified, False otherwise.
-    """
     try:
-        verification_check = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code)
+        verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(to=phone_number, code=code)
         if verification_check.status == 'approved':
             return True
         else:
@@ -177,21 +205,14 @@ async def add_phone(phone_number: str, db: AsyncSession, current_user: User):
 
 
 async def verify_phone(code: str, db: AsyncSession, current_user: UserBase):
-    """
-    Verify the phone number using the code sent to the user's phone.
-        Parameters:
-            code (str): The verification code.
-            db (AsyncSession): The database session.
-            current_user (UserBase): The current user.
-        Returns:
-            dict: A dictionary with the message that the phone number is verified successfully.
-    """
     user = await get_user_by_email(current_user.email, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
     phone_number = user.phone_number
     if not phone_number:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User has no phone number registered.")
+
     if verify_code(phone_number, code):
         user.phone_verified = True
         await db.commit()

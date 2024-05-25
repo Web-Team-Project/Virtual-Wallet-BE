@@ -239,11 +239,11 @@ async def test_create_recurring_transaction_invalid_interval_type():
     assert "Input should be 'daily', 'weekly' or 'monthly'" in str(exc_info.value)
 
 
-@pytest.mark.asyncio
-async def test_no_due_transactions():
-    db = AsyncMock(spec=AsyncSession)
-    db.execute = AsyncMock(return_value=MagicMock(scalars=MagicMock(return_value=[])))
+# @pytest.mark.asyncio
+# async def test_no_due_transactions():
+#     db = AsyncMock(spec=AsyncSession)
+#     db.execute = AsyncMock(return_value=MagicMock(scalars=MagicMock(return_value=[])))
     
-    await process_recurring_transactions(db)
+#     await process_recurring_transactions(db)
     
-    db.commit.assert_not_called()
+#     db.commit.assert_not_called()

@@ -12,10 +12,15 @@ from app.schemas.user import UserBase
 from app.services.crud.user import create_user, user_info
 from app.sql_app.models.models import Card, Category, Contact, Transaction, User
 
+# @pytest.fixture
+# def db():
+#     db = MagicMock(spec=AsyncSession)
+#     db.execute = AsyncMock(return_value=MagicMock(scalars=AsyncMock()))
+#     return db
 
 @pytest.mark.asyncio
 async def test_create_new_user():
-    db = AsyncMock(spec=AsyncSession)
+    db = AsyncMock(spec=AsyncSession)    
     userinfo = {
         "sub": "1234567890",
         "name": "John Doe",
@@ -43,10 +48,9 @@ async def test_create_new_user():
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once()
 
-
 @pytest.mark.asyncio
 async def test_update_existing_user():
-    db = AsyncMock(spec=AsyncSession)
+    db = AsyncMock(spec=AsyncSession)    
     userinfo = {
         "sub": "1234567890",
         "name": "John Doe",
@@ -102,17 +106,23 @@ async def test_update_existing_user():
     )
     actual_update_query = db.execute.call_args_list[1][0][0]
     assert str(expected_update_query) == str(actual_update_query), f"Expected: {expected_update_query}, but got: {actual_update_query}"
+    db.commit.assert_awaited_once()
+    db.refresh.assert_awaited_once()
 
-##########
+#these test work only if we use the commented create_user lines of code which have problems with creating new user
 
 # @pytest.fixture
 # def mock_db():
-#     return AsyncMock(spec=AsyncSession)
+#     mock_db = MagicMock(spec=AsyncSession)
+#     mock_db.execute = AsyncMock()
+#     mock_db.commit = AsyncMock()
+#     mock_db.refresh = AsyncMock()
+#     return mock_db
 
 # @pytest.fixture
 # def mock_user():
-#     return UserBase(
-#         id=uuid4(),
+#     return User(
+#         id=1,
 #         sub="1234567890",
 #         name="John Doe",
 #         given_name="John",
@@ -120,16 +130,19 @@ async def test_update_existing_user():
 #         picture="http://example.com/johndoe.jpg",
 #         email="john.doe@example.com",
 #         email_verified=True,
-#         locale="en"
+#         locale="en",
+#         is_admin=False,
+#         is_active=True,
+#         is_blocked=False,
 #     )
 
 # @pytest.fixture
 # def mock_data():
-#     cards = [Card(id=1, user_id=1, name="Card 1")]  # Update card_name to name
-#     categories = [Category(id=1, user_id=1, category_name="Category 1")]
-#     contacts = [Contact(id=1, user_id=1, contact_name="Contact 1")]
-#     transactions = [Transaction(id=1, card_id=1, amount=100.0)]
-#     return cards, categories, contacts, transactions
+#     cards = [
+#         Card(id=1, user_id=1, card_number="1234", card_type="Visa", expiration_date="12/25"),
+#         Card(id=2, user_id=1, card_number="5678", card_type="MasterCard", expiration_date="11/24"),
+#     ]
+#     return cards, [], [], []
 
 # @pytest.mark.asyncio
 # async def test_fetch_cards(mock_db, mock_user, mock_data):
@@ -140,6 +153,7 @@ async def test_update_existing_user():
 
 #     result = await mock_db.execute(select(Card).where(Card.user_id == mock_user.id))
 #     assert result.scalars().all() == cards
+
 
 # @pytest.mark.asyncio
 # async def test_user_base_initialization(mock_user):
@@ -205,7 +219,6 @@ async def test_update_existing_user():
 #     assert result["contacts"] == contacts
 #     assert result["transactions"] == transactions
 
-#     # Verify that the db.execute method was called with the expected queries
 #     assert str(mock_db.execute.call_args_list[0][0][0]) == str(select(Card).where(Card.user_id == mock_user.id))
 #     assert str(mock_db.execute.call_args_list[1][0][0]) == str(select(Category).where(Category.user_id == mock_user.id))
 #     assert str(mock_db.execute.call_args_list[2][0][0]) == str(select(Contact).where(Contact.user_id == mock_user.id))
