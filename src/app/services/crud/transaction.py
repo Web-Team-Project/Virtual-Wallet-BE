@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList
+from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList, TransactionView
 from app.sql_app.models.models import Transaction, Wallet, User, Card
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 import uuid
-
+from sqlalchemy.orm import selectinload
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
     """
@@ -100,11 +100,24 @@ async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     return result.scalars().all()
 
 
-async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
-    if current_user.is_admin:
-        query = select(Transaction)
-    else:
-        query = select(Transaction).where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
+async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int):
+    """
+       Retrieve transactions based on the provided filters and pagination parameters.
+
+       Parameters:
+           db (AsyncSession): The database session.
+           current_user (User): The current user requesting the transactions.
+           filter (TransactionFilter): The filters to apply to the transaction query.
+           skip (int): The number of transactions to skip for pagination.
+           limit (int): The maximum number of transactions to return.
+
+       Returns:
+           TransactionList: A list of transactions matching the filters and pagination parameters, along with the total count.
+       """
+    query = select(Transaction).options(selectinload(Transaction.card), selectinload(Transaction.category))
+
+    if not current_user.is_admin:
+        query = query.where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
 
     if filter.start_date:
         query = query.where(Transaction.timestamp >= filter.start_date)
@@ -119,17 +132,22 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
             query = query.where(Transaction.recipient_id == current_user.id)
         elif filter.direction == "outgoing":
             query = query.where(Transaction.sender_id == current_user.id)
-
     if filter.sort_by:
         if filter.sort_by == "amount":
             query = query.order_by(Transaction.amount)
         elif filter.sort_by == "date":
             query = query.order_by(Transaction.timestamp)
 
-    total = await db.execute(query.with_only_columns(func.count()))
-    transactions = await db.execute(query.offset(skip).limit(limit))
-    transactions_list = transactions.scalars().all() if transactions.scalars().first() is not None else []
-    return TransactionList(transactions=transactions_list, total=total.scalar() if total else 0)
+    total_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(total_query)
+    total = total_result.scalar_one()
+
+    transactions_result = await db.execute(query.offset(skip).limit(limit))
+    transactions = transactions_result.scalars().all()
+
+    transactions_data = [TransactionView.from_orm(transaction) for transaction in transactions]
+
+    return TransactionList(transactions=transactions_data, total=total)
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: str) -> Transaction:
@@ -220,13 +238,11 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="You can only reject awaiting transactions.")
         
-        # Update the status of the transaction to declined
+
         transaction.status = Status.declined
-        
-        # Commit the changes
+
         await session.commit()
-        
-        # Refresh the transaction object to reflect the changes in the session
+
         await session.refresh(transaction)
         
         return transaction
