@@ -27,11 +27,11 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="Sender is blocked.")
     
-    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id))
+    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency))
     sender_wallet = sender_wallet_result.scalars().first()
     if not sender_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Sender's wallet not found.")
+                            detail="Sender's wallet in the specified currency not found.")
     if sender_wallet.balance < transaction_data.amount:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Insufficient funds.")
@@ -46,6 +46,10 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Recipient's wallet not found.")
+
+    if sender_wallet.currency != recipient_wallet.currency:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Sender's and recipient's wallets must be in the same currency.")
 
     new_transaction = Transaction(id=uuid.uuid4(),
                                   amount=transaction_data.amount,
