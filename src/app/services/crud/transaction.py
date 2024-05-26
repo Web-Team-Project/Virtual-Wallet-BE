@@ -130,40 +130,57 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
     return TransactionList(transactions=transactions.scalars().all(), total=total.scalar())
 
 
-async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: str) -> Transaction:
     """
     Approve an incoming transaction by the recipient.
         Parameters:
             db (AsyncSession): The database session.
             transaction_id (UUID): The ID of the transaction.
-            current_user_id (UUID): The ID of the current user.
+            current_user_id (str): The ID of the current user as a string.
         Returns:
             Transaction: The updated transaction object.
     """
-    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Transaction with id {transaction_id} not found.")
-    if transaction.recipient_id != current_user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You are not allowed to approve this transaction.")
-    if transaction.status != Status.awaiting:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="You can only approve transactions that are awaiting your approval.")
-    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.sender_id))
-    sender_wallet = sender_wallet_result.scalars().first()
-    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.recipient_id))
-    recipient_wallet = recipient_wallet_result.scalars().first()
-    if sender_wallet.balance < transaction.amount:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Insufficient funds.")
-    sender_wallet.balance -= transaction.amount
-    recipient_wallet.balance += transaction.amount
-    transaction.status = Status.confirmed
-    db.add(transaction)
-    db.add(sender_wallet)
-    db.add(recipient_wallet)
+    current_user_id = UUID(current_user_id)
+
+    async with db.begin():
+        result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+        transaction = result.scalars().first()
+        
+        if not transaction:
+            print(f"Transaction with id {transaction_id} not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Transaction with id {transaction_id} not found.")
+        
+        recipient_id = UUID(str(transaction.recipient_id))
+
+        if recipient_id != current_user_id:
+            print("You are not allowed to approve this transaction.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="You are not allowed to approve this transaction.")
+        
+        if transaction.status != Status.awaiting:
+            print("Transaction status is not awaiting approval.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="You can only approve transactions that are awaiting your approval.")
+        
+        sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.sender_id))
+        sender_wallet = sender_wallet_result.scalars().first()
+        
+        recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction.recipient_id))
+        recipient_wallet = recipient_wallet_result.scalars().first()
+        
+        if sender_wallet.balance < transaction.amount:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Insufficient funds.")
+        
+        sender_wallet.balance -= transaction.amount
+        recipient_wallet.balance += transaction.amount
+        transaction.status = Status.confirmed
+        
+        db.add(transaction)
+        db.add(sender_wallet)
+        db.add(recipient_wallet)
+    
     await db.commit()
     await db.refresh(transaction)
     await db.refresh(sender_wallet)
@@ -171,33 +188,46 @@ async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_us
     return transaction
 
 
-async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: UUID) -> Transaction:
+async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: str) -> Transaction:
     """
     Reject an incoming transaction by the recipient.
         Parameters:
             db (AsyncSession): The database session.
             transaction_id (UUID): The ID of the transaction.
-            current_user_id (UUID): The ID of the current user.
+            current_user_id (str): The ID of the current user as a string.
         Returns:
             Transaction: The updated transaction object.
     """
-    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Transaction with id {transaction_id} not found.")
-    if transaction.recipient_id != current_user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You are not allowed to reject this transaction.")
-    if transaction.status != Status.pending:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="You can only reject pending transactions.")
-    transaction.status = Status.declined
-    db.add(transaction)
-    await db.commit()
-    await db.refresh(transaction)
-    return transaction
+    # Convert current_user_id to UUID
+    current_user_id = UUID(current_user_id)
 
+    async with db as session:
+        # Query the database for the transaction
+        result = await session.execute(select(Transaction).where(Transaction.id == transaction_id))
+        transaction = result.scalar_one_or_none()
+        
+        if not transaction:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Transaction with id {transaction_id} not found.")
+        
+        if transaction.recipient_id != current_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="You are not allowed to reject this transaction.")
+        
+        if transaction.status != Status.awaiting:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="You can only reject awaiting transactions.")
+        
+        # Update the status of the transaction to declined
+        transaction.status = Status.declined
+        
+        # Commit the changes
+        await session.commit()
+        
+        # Refresh the transaction object to reflect the changes in the session
+        await session.refresh(transaction)
+        
+        return transaction
 
 async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
     """
@@ -217,7 +247,7 @@ async def deny_transaction(db: AsyncSession, current_user: User, transaction_id:
     if not transaction:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="Transaction not found.")
-    if transaction.status != "pending" or transaction.status != "awaiting":
+    if (transaction.status != Status.pending) and (transaction.status != Status.awaiting):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
                             detail="Transaction is not pending or awaiting.")
     await db.execute(update(Transaction).where(Transaction.id == transaction_id).values(status="declined"))

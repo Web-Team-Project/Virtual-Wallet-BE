@@ -125,6 +125,6 @@ async def deny_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Dep
             Transaction: The denied transaction object.
     """
     async def _deny_transaction() -> Transaction:
-        return await deny_transaction(db, transaction_id, current_user.id)
+        return await deny_transaction(db, current_user, transaction_id)
 
     return await process_request(_deny_transaction)
