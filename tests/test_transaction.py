@@ -1,10 +1,11 @@
+import asyncio
 from datetime import datetime, timezone
 import re
 from uuid import UUID, uuid4
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import pytest
 
 from app.schemas.transaction import TransactionCreate, TransactionFilter
@@ -413,190 +414,300 @@ async def test_get_transactions_by_user_id_with_transactions():
     assert result_transactions == transactions
 
 
-# @pytest.mark.asyncio
-# async def test_get_transactions_as_admin():
-#     db = AsyncMock(spec=AsyncSession)
-
-#     admin_user = User(id=uuid4(), is_admin=True)
-
-#     filter_params = TransactionFilter(start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31))
-    
-#     transactions = [
-#         Transaction(amount=100, currency="USD", timestamp=datetime.utcnow()),
-#         Transaction(amount=200, currency="EUR", timestamp=datetime.utcnow()),
-#         Transaction(amount=300, currency="GBP", timestamp=datetime.utcnow())
-#     ]
-
-#     mock_result_count = MagicMock()
-#     mock_result_count.scalar.return_value = 3
-
-#     mock_result_transactions = MagicMock()
-#     mock_result_transactions.scalars.return_value.all.return_value = transactions
-
-#     db.execute = AsyncMock(side_effect=[mock_result_count, mock_result_transactions])
-
-#     result = await get_transactions(db, admin_user, filter_params, skip=0, limit=10)
-
-#     assert result.total == 3
-#     assert len(result.transactions) == 3
-#     assert isinstance(result.transactions[0], Transaction)
+def test_direct_comparison():
+    transaction_recipient_id = UUID('bed1718a-fb0d-4c65-a29d-fd2ceef9b07d')
+    current_user_id = UUID('bed1718a-fb0d-4c65-a29d-fd2ceef9b07d')
+    assert transaction_recipient_id == current_user_id
 
 
-# @pytest.mark.asyncio
-# async def test_approve_transaction_valid():
-#     # Mock the database session
-#     db = AsyncMock(spec=AsyncSession)
+@pytest.mark.asyncio
+async def test_approve_transaction_success():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+    sender_id = uuid4()
+    recipient_id = current_user_id
+    amount = 100
 
-#     # Create a valid transaction ID and current user ID
-#     transaction_id = uuid4()
-#     current_user_id = uuid4()
+    transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.awaiting)
+    sender_wallet = Wallet(user_id=sender_id, balance=200)
+    recipient_wallet = Wallet(user_id=recipient_id, balance=50)
 
-#     # Create a transaction with status "awaiting" and correct recipient ID
-#     transaction = TransactionCreate(id=transaction_id, status=Status.awaiting, sender_id=uuid4(), recipient_id=current_user_id, amount=100)
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = transaction
 
-#     # Mock the database session to return the transaction wrapped in a Result object
-#     result = AsyncMock()
-#     result.scalar.return_value = transaction
-#     db.execute = AsyncMock(return_value=result)
+    mock_sender_wallet_result = MagicMock()
+    mock_sender_wallet_result.scalars.return_value.first.return_value = sender_wallet
 
-#     # Call the function being tested
-#     result = await approve_transaction(db, transaction_id, current_user_id)
+    mock_recipient_wallet_result = MagicMock()
+    mock_recipient_wallet_result.scalars.return_value.first.return_value = recipient_wallet
 
-#     # Assert that the transaction status is updated to "confirmed"
-#     assert result.status == Status.confirmed
+    db.execute = AsyncMock(side_effect=[
+        mock_transaction_result,
+        mock_sender_wallet_result,
+        mock_recipient_wallet_result
+    ])
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
 
-# @pytest.mark.asyncio
-# async def test_approve_transaction_valid():
-#     # Mock the database session and query result
-#     db = AsyncMock(spec=AsyncSession)
-#     result = AsyncMock()
-#     result.scalar.return_value = Transaction(
-#         id=UUID("00000000-0000-0000-0000-000000000001"),  # Example transaction ID
-#         recipient_id=UUID("00000000-0000-0000-0000-000000000002"),  # Example recipient ID
-#         status=Status.awaiting,
-#         sender_id=UUID("00000000-0000-0000-0000-000000000003"),  # Example sender ID
-#         amount=100
-#     )
-#     db.execute.return_value = result
+    approved_transaction = await approve_transaction(db, transaction_id, str(current_user_id))
 
-#     # Call the function being tested
-#     transaction = await approve_transaction(db, UUID("00000000-0000-0000-0000-000000000001"), UUID("00000000-0000-0000-0000-000000000002"))
+    assert approved_transaction.status == Status.confirmed
+    assert sender_wallet.balance == 100
+    assert recipient_wallet.balance == 150
+    db.commit.assert_called_once()
+    db.refresh.assert_any_call(transaction)
+    db.refresh.assert_any_call(sender_wallet)
+    db.refresh.assert_any_call(recipient_wallet)
 
-#     # Assert the transaction object returned by the function
-#     assert isinstance(transaction, Transaction)
-#     assert transaction.id == UUID("00000000-0000-0000-0000-000000000001")
-#     assert transaction.recipient_id == UUID("00000000-0000-0000-0000-000000000002")
-#     assert transaction.status == Status.confirmed
 
-# @pytest.mark.asyncio
-# async def test_approve_transaction_transaction_not_found():
-#     # Mock the database session to return None for the transaction
-#     db = AsyncMock(spec=AsyncSession)
-#     result = AsyncMock()
-#     result.scalar.return_value = None
-#     db.execute.return_value = result
+@pytest.mark.asyncio
+async def test_approve_transaction_not_found():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
 
-#     # Call the function being tested
-#     with pytest.raises(HTTPException) as exc_info:
-#         await approve_transaction(db, UUID("00000000-0000-0000-0000-000000000001"), UUID("00000000-0000-0000-0000-000000000002"))
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = None
 
-#     # Assert the HTTPException is raised with the correct status code and detail message
-#     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-#     assert "Transaction with id" in exc_info.value.detail
+    db.execute = AsyncMock(return_value=mock_transaction_result)
+
+    with pytest.raises(HTTPException) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+    assert excinfo.value.detail == f"Transaction with id {transaction_id} not found."
+
+
+@pytest.mark.asyncio
+async def test_approve_transaction_unauthorized_user():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+    sender_id = uuid4()
+    recipient_id = uuid4()  # Different from current_user_id
+    amount = 100
+
+    transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.awaiting)
+
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = transaction
+
+    db.execute = AsyncMock(return_value=mock_transaction_result)
+
+    with pytest.raises(HTTPException) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
+    assert excinfo.value.detail == "You are not allowed to approve this transaction."
+
+
+@pytest.mark.asyncio
+async def test_approve_transaction_invalid_status():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+    sender_id = uuid4()
+    recipient_id = current_user_id
+    amount = 100
+
+    transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.pending)
+
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = transaction
+
+    db.execute = AsyncMock(return_value=mock_transaction_result)
+
+    with pytest.raises(HTTPException) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "You can only approve transactions that are awaiting your approval."
+
+
+@pytest.mark.asyncio
+async def test_approve_transaction_insufficient_funds():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+    sender_id = uuid4()
+    recipient_id = current_user_id
+    amount = 200
+
+    transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.awaiting)
+    sender_wallet = Wallet(user_id=sender_id, balance=100)
+    recipient_wallet = Wallet(user_id=recipient_id, balance=50)
+
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = transaction
+
+    mock_sender_wallet_result = MagicMock()
+    mock_sender_wallet_result.scalars.return_value.first.return_value = sender_wallet
+
+    mock_recipient_wallet_result = MagicMock()
+    mock_recipient_wallet_result.scalars.return_value.first.return_value = recipient_wallet
+
+    db.execute = AsyncMock(side_effect=[
+        mock_transaction_result,
+        mock_sender_wallet_result,
+        mock_recipient_wallet_result
+    ])
+
+    with pytest.raises(HTTPException) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "Insufficient funds."
+
+
+@pytest.mark.asyncio
+async def test_approve_transaction_database_error():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+
+    db.execute = AsyncMock(side_effect=Exception("Database error"))
+
+    with pytest.raises(Exception) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert str(excinfo.value) == "Database error"
+
+
+@pytest.mark.asyncio
+async def test_approve_transaction_already_confirmed():
+    db = AsyncMock(spec=AsyncSession)
+    transaction_id = uuid4()
+    current_user_id = uuid4()
+    sender_id = uuid4()
+    recipient_id = current_user_id
+    amount = 100
+
+    transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.confirmed)
+
+    mock_transaction_result = MagicMock()
+    mock_transaction_result.scalars.return_value.first.return_value = transaction
+
+    db.execute = AsyncMock(return_value=mock_transaction_result)
+
+    with pytest.raises(HTTPException) as excinfo:
+        await approve_transaction(db, transaction_id, str(current_user_id))
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "You can only approve transactions that are awaiting your approval."
 
 
 # @pytest.mark.asyncio
 # async def test_reject_transaction_success():
-#     # Mock the database session and query result
-#     db = AsyncMock(spec=AsyncSession)
-#     transaction_id = UUID("00000000-0000-0000-0000-000000000001")
-#     current_user_id = UUID("00000000-0000-0000-0000-000000000002")
-#     mock_transaction = Transaction(id=transaction_id, recipient_id=current_user_id, status=Status.pending)
-#     db_result = AsyncMock()
-#     db_result.scalars().first.return_value = mock_transaction
-#     db.execute.return_value = db_result
+#     async with AsyncSession() as db:
+#         transaction_id = uuid4()
+#         current_user_id = str(uuid4())
 
-#     # Call the function being tested
-#     transaction = await reject_transaction(db, transaction_id, current_user_id)
+#         transaction = Transaction(id=transaction_id, sender_id=uuid4(), recipient_id=uuid4(), status=Status.awaiting)
 
-#     # Assert the transaction status is declined
-#     assert transaction.status == Status.declined
+#         mock_result = MagicMock()
+#         mock_result.scalars.return_value.first.return_value = transaction
 
-# @pytest.mark.asyncio
-# async def test_reject_transaction_transaction_not_found():
-#     # Mock the database session to return None for the transaction
-#     db = AsyncMock(spec=AsyncSession)
-#     transaction_id = UUID("00000000-0000-0000-0000-000000000001")
-#     current_user_id = UUID("00000000-0000-0000-0000-000000000002")
-    
-#     # Mock the query result
-#     db_result = AsyncMock()
-#     db_result.scalars().first.return_value = None
+#         db.execute = MagicMock(return_value=mock_result)
 
-#     # Mock the execute method of the session to return the query result
-#     db.execute.return_value = db_result
+#         try:
+#             current_user_id = UUID(current_user_id)
+#             await reject_transaction(db, transaction_id, current_user_id)
+#         except Exception as e:
+#             assert False, f"Exception occurred: {e}"
 
-#     # Call the function being tested and expect HTTPException
-#     with pytest.raises(HTTPException) as exc_info:
-#         await reject_transaction(db, transaction_id, current_user_id)
-
-#     # Assert HTTPException status code and detail message
-#     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-#     assert f"Transaction with id {transaction_id} not found." in exc_info.value.detail
-
-# @pytest.mark.asyncio
-# async def test_reject_transaction_not_pending():
-#     # Mock the database session and query result
-#     db = AsyncMock(spec=AsyncSession)
-#     transaction_id = UUID("00000000-0000-0000-0000-000000000001")
-#     current_user_id = UUID("00000000-0000-0000-0000-000000000002")
-#     mock_transaction = Transaction(id=transaction_id, recipient_id=current_user_id, status=Status.confirmed)
-#     db_result = AsyncMock()
-#     db_result.scalars().first.return_value = mock_transaction
-#     db.execute.return_value = db_result
-
-#     # Call the function being tested and expect HTTPException
-#     with pytest.raises(HTTPException) as exc_info:
-#         await reject_transaction(db, transaction_id, current_user_id)
-
-#     # Assert HTTPException status code and detail message
-#     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-#     assert "You can only reject pending transactions." in exc_info.value.detail
-
-# @pytest.mark.asyncio
-# async def test_reject_transaction_wrong_recipient():
-#     # Mock the database session and query result
-#     db = AsyncMock(spec=AsyncSession)
-#     transaction_id = UUID("00000000-0000-0000-0000-000000000001")
-#     current_user_id = UUID("00000000-0000-0000-0000-000000000002")
-#     mock_transaction = Transaction(id=transaction_id, recipient_id=UUID("00000000-0000-0000-0000-000000000003"), status=Status.pending)
-#     db_result = AsyncMock()
-#     db_result.scalars().first.return_value = mock_transaction
-#     db.execute.return_value = db_result
-
-#     # Call the function being tested and expect HTTPException
-#     with pytest.raises(HTTPException) as exc_info:
-#         await reject_transaction(db, transaction_id, current_user_id)
-
-#     # Assert HTTPException status code and detail message
-#     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
-#     assert "You are not allowed to reject this transaction." in exc_info.value.detail
 
 
 # @pytest.mark.asyncio
-# async def test_deny_transaction_admin():
-#     # Mock the database session and the user
+# async def test_reject_transaction_not_found():
 #     db = AsyncMock(spec=AsyncSession)
-#     current_user = User(id=UUID("00000000-0000-0000-0000-000000000001"), is_admin=True)
-    
-#     # Mock the query result to return a pending transaction
-#     transaction_id = UUID("00000000-0000-0000-0000-000000000002")
-#     db_result = AsyncMock()
-#     db_result.scalars().first.return_value = Transaction(id=transaction_id, status=Status.pending)
-#     db.execute.return_value = db_result
+#     transaction_id = uuid4()
+#     current_user_id = uuid4()
 
-#     # Call the function being tested
-#     response = await deny_transaction(db, current_user, transaction_id)
+#     mock_result = MagicMock()
+#     mock_result.scalar_one_or_none.return_value = None
 
-#     # Assert the response message
-#     assert response == {"message": "Transaction declined."}
+#     db.execute = AsyncMock(return_value=mock_result)
+
+#     with pytest.raises(HTTPException) as excinfo:
+#         await reject_transaction(db, transaction_id, str(current_user_id))
+
+#     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+#     assert excinfo.value.detail == f"Transaction with id {transaction_id} not found."
+
+
+# @pytest.mark.asyncio
+# async def test_reject_transaction_unauthorized_user():
+#     db = AsyncMock(spec=AsyncSession)
+#     transaction_id = uuid4()
+#     current_user_id = uuid4()
+#     recipient_id = uuid4()  # Different from current_user_id
+
+#     transaction = Transaction(id=transaction_id, recipient_id=recipient_id, status=Status.awaiting)
+
+#     mock_result = MagicMock()
+#     mock_result.scalar_one_or_none.return_value = transaction
+
+#     db.execute = AsyncMock(return_value=mock_result)
+
+#     with pytest.raises(HTTPException) as excinfo:
+#         await reject_transaction(db, transaction_id, str(current_user_id))
+
+#     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
+#     assert excinfo.value.detail == "You are not allowed to reject this transaction."
+
+
+# @pytest.mark.asyncio
+# async def test_reject_transaction_invalid_status():
+#     db = AsyncMock(spec=AsyncSession)
+#     transaction_id = uuid4()
+#     current_user_id = uuid4()
+#     recipient_id = current_user_id
+
+#     transaction = Transaction(id=transaction_id, recipient_id=recipient_id, status=Status.pending)
+
+#     mock_result = MagicMock()
+#     mock_result.scalar_one_or_none.return_value = transaction
+
+#     db.execute = AsyncMock(return_value=mock_result)
+
+#     with pytest.raises(HTTPException) as excinfo:
+#         await reject_transaction(db, transaction_id, str(current_user_id))
+
+#     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+#     assert excinfo.value.detail == "You can only reject awaiting transactions."
+
+
+# @pytest.mark.asyncio
+# async def test_reject_transaction_database_error():
+#     db = AsyncMock(spec=AsyncSession)
+#     transaction_id = uuid4()
+#     current_user_id = uuid4()
+
+#     db.execute = AsyncMock(side_effect=Exception("Database error"))
+
+#     with pytest.raises(Exception) as excinfo:
+#         await reject_transaction(db, transaction_id, str(current_user_id))
+
+#     assert str(excinfo.value) == "Database error"
+
+
+# @pytest.mark.asyncio
+# async def test_reject_transaction_already_declined():
+#     db = AsyncMock(spec=AsyncSession)
+#     transaction_id = uuid4()
+#     current_user_id = uuid4()
+#     recipient_id = current_user_id
+
+#     transaction = Transaction(id=transaction_id, recipient_id=recipient_id, status=Status.declined)
+
+#     mock_result = MagicMock()
+#     mock_result.scalar_one_or_none.return_value = transaction
+
+#     db.execute = AsyncMock(return_value=mock_result)
+
+#     with pytest.raises(HTTPException) as excinfo:
+#         await reject_transaction(db, transaction_id, str(current_user_id))
+
+#     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+#     assert excinfo.value.detail == "You can only reject awaiting transactions."
