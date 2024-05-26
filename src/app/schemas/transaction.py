@@ -67,6 +67,7 @@ class TransactionList(BaseModel):
 
 class RecurringTransactionCreate(BaseModel):
     amount: int
+    currency: Currency
     card_id: UUID
     recipient_id: UUID
     category_id: UUID

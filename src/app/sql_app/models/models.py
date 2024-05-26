@@ -1,3 +1,5 @@
+import asyncio
+
 from sqlalchemy import Column, DateTime, ForeignKey, Float, String, Boolean, Enum, Integer
 from sqlalchemy.orm import relationship
 from app.sql_app.database import Base
@@ -102,6 +104,7 @@ class RecurringTransaction(Base):
     __tablename__ = "recurring_transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4, unique=True, nullable=False)
+    currency = Column(Enum(Currency), default="BGN")
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
     recipient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
