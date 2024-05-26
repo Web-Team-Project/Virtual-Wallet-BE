@@ -227,11 +227,9 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
         Returns:
             Transaction: The updated transaction object.
     """
-    # Convert current_user_id to UUID
     current_user_id = UUID(current_user_id)
 
     async with db as session:
-        # Query the database for the transaction
         result = await session.execute(select(Transaction).where(Transaction.id == transaction_id))
         transaction = result.scalar_one_or_none()
         
