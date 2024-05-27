@@ -23,16 +23,36 @@ async def create_user(userinfo):
     """
     async with AsyncSession(engine) as session:
         result = await session.execute(select(User).where(User.email == userinfo["email"]))
-        user = await result.scalar()
-        if user is None:
-            user = User(**userinfo)
-            session.add(user)
+        user = result.scalars().first()
+        if user:
+            res = (update(User).where(User.email == userinfo["email"]).values(
+                    sub=userinfo["sub"],
+                    name=userinfo["name"],
+                    given_name=userinfo["given_name"],
+                    family_name=userinfo["family_name"],
+                    picture=userinfo["picture"],
+                    email_verified=userinfo["email_verified"],
+                    locale=userinfo["locale"],
+                    is_active=True,
+                    is_blocked=False,
+                    is_admin=user.is_admin))
+            await session.execute(res)
         else:
-            for key, value in userinfo.items():
-                setattr(user, key, value)
-        await session.commit()
-        await session.refresh(user)
-        return user
+            new_user = User(
+                sub=userinfo["sub"],
+                name=userinfo["name"],
+                given_name=userinfo["given_name"],
+                family_name=userinfo["family_name"],
+                picture=userinfo["picture"],
+                email=userinfo["email"],
+                email_verified=userinfo["email_verified"],
+                locale=userinfo["locale"],
+                is_active=True,
+                is_blocked=False,
+                is_admin=False)
+            session.add(new_user)
+            await session.commit()
+            await session.refresh(new_user)
 
 
 async def user_info(db: AsyncSession, current_user: UserBase):
