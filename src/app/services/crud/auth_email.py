@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +8,6 @@ from app.services.common.utils import generate_verification_token
 from app.services.crud.user import get_user_by_email
 from app.services.common.verification import send_verification_email
 from app.sql_app.models.models import User
-import jwt
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -132,11 +130,5 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession)
             detail="Email not verified. Please verify your email."
         )
 
-    access_token_data = {
-        "user_id": str(user.id),
-        "email": user.email,
-        "exp": datetime.now() + timedelta(minutes=30),
-    }
-    access_token = jwt.encode(access_token_data, "yoursecretkey", algorithm="HS256")
-    request.session["user"] = {"id": user.id, "email": user.email, "access_token": access_token}
-    return {"access_token": access_token, "token_type": "bearer"}
+    request.session["user"] = {"id": str(user.id), "email": user.email}
+    return request.session["user"]
