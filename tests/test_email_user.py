@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.sql_app.models.models import User
+from itsdangerous import SignatureExpired, BadSignature
 
 
 @pytest.fixture
@@ -119,6 +120,46 @@ async def test_verify_email_with_invalid_token(db):
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Invalid verification link."
 
+@pytest.mark.asyncio
+async def test_verify_email_with_bad_signature_token(db):
+    token = "bad_signature_token"
+    serializer = MagicMock()
+    serializer.loads.side_effect = BadSignature("Invalid token")
+
+    with patch("app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer):
+        with pytest.raises(HTTPException) as excinfo:
+            await verify_email(token, db)
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "Invalid verification link."
+
+@pytest.mark.asyncio
+async def test_verify_email_with_expired_token(db):
+    token = "expired_token"
+    serializer = MagicMock()
+    serializer.loads.side_effect = SignatureExpired("Token expired")
+
+    with patch("app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer):
+        with pytest.raises(HTTPException) as excinfo:
+            await verify_email(token, db)
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "Verification link expired."
+
+@pytest.mark.asyncio
+async def test_authenticate_user_with_invalid_password(db, mock_user):
+    mock_pwd_context = MagicMock()
+    mock_pwd_context.verify = MagicMock(return_value=False)
+
+    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=mock_user)), \
+            patch("app.services.crud.auth_email.pwd_context", new=mock_pwd_context):
+        with pytest.raises(HTTPException) as excinfo:
+            await authenticate_user(db, "user@example.com", "wrongpassword")
+
+        assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert excinfo.value.detail == "Incorrect email or password."
+
+
 
 @pytest.mark.asyncio
 async def test_verify_email_with_no_user(db):
@@ -168,3 +209,32 @@ async def test_login_with_invalid_credentials(db):
             await login(request, login_request, db)
 
     assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# @pytest.mark.asyncio
+# async def test_create_new_user_register_failure(db):
+#     user_data = EmailUserCreate(email="user@example.com", hashed_password="validpassword")
+#
+#     # Simulate a failure in register_with_email
+#     with patch("app.services.crud.auth_email.register_with_email", new=AsyncMock(side_effect=HTTPException(status_code=400, detail="Registration failed"))):
+#         with pytest.raises(HTTPException) as excinfo:
+#             await create_new_user(user_data, db)
+#
+#     assert excinfo.value.status_code == 400
+#     assert excinfo.value.detail == "Registration failed"
+
+
+@pytest.mark.asyncio
+async def test_verify_email_with_no_user(db):
+    token = "valid_token"
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
+
+    with patch("app.services.crud.auth_email.URLSafeTimedSerializer") as mock_serializer:
+        mock_serializer().loads = MagicMock(return_value="user@example.com")
+
+        with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=None)):
+            with pytest.raises(HTTPException) as excinfo:
+                await verify_email(token, db)
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "Invalid verification token."
