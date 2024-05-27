@@ -125,4 +125,4 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession)
             headers={"WWW-Authenticate": "Bearer"},
         )
     request.session["user"] = {"id": str(user.id), "email": user.email, "phone_number": user.phone_number}
-    return {"access_token": request.session.get("user.id"), "token_type": "bearer"}
+    return {"access_token": request.session["user"]["id"], "token_type": "bearer"}
