@@ -43,7 +43,7 @@ async def get_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db)
             List[RecurringTransaction]: The list of recurring transactions.
     """
     async def _get_recurring_transactions():
-        return await get_recurring_transactions(db, current_user.id)
+        return await get_recurring_transactions(db, current_user)
 
     return await process_request(_get_recurring_transactions)
 

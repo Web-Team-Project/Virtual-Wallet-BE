@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList
+from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList, TransactionView
 from app.sql_app.models.models import Transaction, Wallet, User, Card
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 import uuid
-
+from sqlalchemy.orm import selectinload
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
     """
@@ -27,11 +27,11 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="Sender is blocked.")
     
-    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id))
+    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency))
     sender_wallet = sender_wallet_result.scalars().first()
     if not sender_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Sender's wallet not found.")
+                            detail="Sender's wallet in the specified currency not found.")
     if sender_wallet.balance < transaction_data.amount:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Insufficient funds.")
@@ -46,6 +46,10 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Recipient's wallet not found.")
+
+    if sender_wallet.currency != recipient_wallet.currency:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Sender's and recipient's wallets must be in the same currency.")
 
     new_transaction = Transaction(id=uuid.uuid4(),
                                   amount=transaction_data.amount,
@@ -63,7 +67,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     return new_transaction
 
 
-async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user: User) -> Transaction:
+async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user_id: str) -> Transaction:
     """
     Confirm a transaction by the sender so that the recipient can approve it.
         Parameters:
@@ -73,15 +77,27 @@ async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_us
         Returns:
             Transaction: The updated transaction object.
     """
-    result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
-    transaction = result.scalars().first()
-    if not transaction:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                             detail="Transaction not found.")
-    if transaction.status == "confirmed":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                             detail="Transaction is already confirmed.")
-    transaction.status = "awaiting"
+    current_user_id = UUID(current_user_id)
+
+    async with db.begin():
+        result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+        transaction = result.scalars().first()
+
+        if not transaction:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Transaction with id {transaction_id} not found.")
+
+        sender_id = UUID(str(transaction.sender_id))
+
+        if sender_id != current_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="You are not allowed to confirm this transaction.")
+
+        if transaction.status != Status.pending:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="You can only confirm transactions that are pending your confirmation.")
+
+    transaction.status = Status.awaiting
     await db.commit()
     await db.refresh(transaction)
     return transaction
@@ -100,11 +116,24 @@ async def get_transactions_by_user_id(db: AsyncSession, user_id: UUID):
     return result.scalars().all()
 
 
-async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int) -> TransactionList:
-    if current_user.is_admin:
-        query = select(Transaction)
-    else:
-        query = select(Transaction).where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
+async def get_transactions(db: AsyncSession, current_user: User, filter: TransactionFilter, skip: int, limit: int):
+    """
+       Retrieve transactions based on the provided filters and pagination parameters.
+
+       Parameters:
+           db (AsyncSession): The database session.
+           current_user (User): The current user requesting the transactions.
+           filter (TransactionFilter): The filters to apply to the transaction query.
+           skip (int): The number of transactions to skip for pagination.
+           limit (int): The maximum number of transactions to return.
+
+       Returns:
+           TransactionList: A list of transactions matching the filters and pagination parameters, along with the total count.
+       """
+    query = select(Transaction).options(selectinload(Transaction.card), selectinload(Transaction.category))
+
+    if not current_user.is_admin:
+        query = query.where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
 
     if filter.start_date:
         query = query.where(Transaction.timestamp >= filter.start_date)
@@ -119,17 +148,22 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
             query = query.where(Transaction.recipient_id == current_user.id)
         elif filter.direction == "outgoing":
             query = query.where(Transaction.sender_id == current_user.id)
-
     if filter.sort_by:
         if filter.sort_by == "amount":
             query = query.order_by(Transaction.amount)
         elif filter.sort_by == "date":
             query = query.order_by(Transaction.timestamp)
 
-    total = await db.execute(query.with_only_columns(func.count()))
-    transactions = await db.execute(query.offset(skip).limit(limit))
-    transactions_list = transactions.scalars().all() if transactions.scalars().first() is not None else []
-    return TransactionList(transactions=transactions_list, total=total.scalar() if total else 0)
+    total_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(total_query)
+    total = total_result.scalar_one()
+
+    transactions_result = await db.execute(query.offset(skip).limit(limit))
+    transactions = transactions_result.scalars().all()
+
+    transactions_data = [TransactionView.from_orm(transaction) for transaction in transactions]
+
+    return TransactionList(transactions=transactions_data, total=total)
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: str) -> Transaction:
@@ -149,19 +183,16 @@ async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_us
         transaction = result.scalars().first()
         
         if not transaction:
-            print(f"Transaction with id {transaction_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Transaction with id {transaction_id} not found.")
         
         recipient_id = UUID(str(transaction.recipient_id))
 
         if recipient_id != current_user_id:
-            print("You are not allowed to approve this transaction.")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="You are not allowed to approve this transaction.")
         
         if transaction.status != Status.awaiting:
-            print("Transaction status is not awaiting approval.")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="You can only approve transactions that are awaiting your approval.")
         
@@ -200,11 +231,9 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
         Returns:
             Transaction: The updated transaction object.
     """
-    # Convert current_user_id to UUID
     current_user_id = UUID(current_user_id)
 
     async with db as session:
-        # Query the database for the transaction
         result = await session.execute(select(Transaction).where(Transaction.id == transaction_id))
         transaction = result.scalar_one_or_none()
         
@@ -220,13 +249,11 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="You can only reject awaiting transactions.")
         
-        # Update the status of the transaction to declined
+
         transaction.status = Status.declined
-        
-        # Commit the changes
+
         await session.commit()
-        
-        # Refresh the transaction object to reflect the changes in the session
+
         await session.refresh(transaction)
         
         return transaction

@@ -33,7 +33,7 @@ async def view_transactions(filter: TransactionFilter = Depends(),
             List[Transaction]: The list of transactions.
     """
     async def _get_transactions() -> List[Transaction]:
-        return await get_transactions(db, current_user.id, filter, skip, limit)
+        return await get_transactions(db, current_user, filter, skip, limit)
 
     return await process_request(_get_transactions)
 

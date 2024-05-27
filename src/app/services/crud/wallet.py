@@ -22,15 +22,19 @@ async def create_wallet(db: AsyncSession, user_id: UUID, currency: Currency) -> 
     user_result = await db.execute(select(User).where(User.id == user_id))
     user = user_result.scalars().first()
 
-    # if not user.phone_verified:
-    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-    #                         detail="Phone number not verified. Cannot create wallet.")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="User not found.")
+
+    if not user.phone_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Phone number not verified. Cannot create wallet.")
 
     result = await db.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.currency == currency))
     wallet = result.scalars().first()
     if wallet:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail ="Wallet already exists for this user and currency.")
+                            detail="Wallet already exists for this user and currency.")
     new_wallet = Wallet(
         id=uuid.uuid4(),
         user_id=user_id,

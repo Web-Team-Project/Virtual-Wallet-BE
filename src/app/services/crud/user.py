@@ -13,14 +13,13 @@ from twilio.rest import Client
 settings = get_settings()
 client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
 
-
 async def create_user(userinfo):
     """
     Create a new user using Google OAuth2 or update the existing one.
-        Parameters:
-            userinfo (dict): The user information.
-        Returns:
-            User: The created or updated user object.
+    Parameters:
+        userinfo (dict): The user information.
+    Returns:
+        User: The created or updated user object.
     """
     async with AsyncSession(engine) as session:
         result = await session.execute(select(User).where(User.email == userinfo["email"]))

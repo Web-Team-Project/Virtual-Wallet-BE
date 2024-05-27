@@ -9,9 +9,9 @@ class TransactionBase(BaseModel):
     amount: int
     currency: Currency
     timestamp: datetime
-    category: str
     card_id: UUID
-    user_id: UUID
+    sender_id: UUID
+    recipient_id: UUID
     category_id: UUID
     status: str
 
@@ -28,6 +28,25 @@ class Transaction(TransactionBase):
     id: UUID
     timestamp: datetime
 
+    class Config:
+        from_attributes = True
+
+class Category(BaseModel):
+    id: UUID
+    name: str
+
+    class Config:
+        from_attributes = True
+class TransactionView(BaseModel):
+    id: UUID
+    amount: int
+    currency: str
+    timestamp: datetime
+    card_id: UUID
+    sender_id: UUID
+    recipient_id: UUID
+    category_id: UUID
+    status: str
     class Config:
         from_attributes = True
 
@@ -48,6 +67,7 @@ class TransactionList(BaseModel):
 
 class RecurringTransactionCreate(BaseModel):
     amount: int
+    currency: Currency
     card_id: UUID
     recipient_id: UUID
     category_id: UUID
