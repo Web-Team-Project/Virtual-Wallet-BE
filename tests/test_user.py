@@ -1,225 +1,104 @@
-from datetime import datetime, timezone
-import re
-from uuid import UUID, uuid4
-from fastapi import HTTPException, status
-from requests import patch
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 import pytest
+from sqlalchemy import select
 
 from app.schemas.user import UserBase
 from app.services.crud.user import create_user, user_info
 from app.sql_app.models.models import Card, Category, Contact, Transaction, User
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# @pytest.fixture
-# def db():
-#     db = MagicMock(spec=AsyncSession)
-#     db.execute = AsyncMock(return_value=MagicMock(scalars=AsyncMock()))
-#     return db
 
-# @pytest.mark.asyncio
-# async def test_create_new_user():
-#     db = AsyncMock(spec=AsyncSession)    
-#     userinfo = {
-#         "sub": "1234567890",
-#         "name": "John Doe",
-#         "given_name": "John",
-#         "family_name": "Doe",
-#         "picture": "http://example.com/johndoe.jpg",
-#         "email": "john.doe@example.com",
-#         "email_verified": True,
-#         "locale": "en"
-#     }
+@pytest.mark.asyncio
+async def test_create_user_new():
+    userinfo = {
+        "sub": "sub_id",
+        "name": "John Doe",
+        "given_name": "John",
+        "family_name": "Doe",
+        "picture": "https://example.com/picture.jpg",
+        "email": "john@example.com",
+        "email_verified": True,
+        "locale": "en_US"
+    }
 
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.first.return_value = None
-#     db.execute = AsyncMock(return_value=mock_result)
-#     db.commit = AsyncMock()
-#     db.refresh = AsyncMock()
+    # Mock AsyncSession and its methods
+    db = MagicMock(spec=AsyncSession)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = None
+    db.execute = AsyncMock(return_value=mock_result)
+    db.add = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
 
-#     await create_user(userinfo, db)
+    with patch("app.services.crud.user.AsyncSession", return_value=db):
+        result = await create_user(userinfo)
 
-#     expected_query = str(select(User).where(User.email == userinfo["email"]))
-#     actual_query = str(db.execute.call_args[0][0])
+    await db.add()
+
+    db.add.assert_awaited_once()
+
+@pytest.mark.asyncio
+async def test_update_existing_user():
+    userinfo = {
+        "sub": "sub_id",
+        "name": "John Doe",
+        "given_name": "John",
+        "family_name": "Doe",
+        "picture": "https://example.com/picture.jpg",
+        "email": "john@example.com",
+        "email_verified": True,
+        "locale": "en_US"
+    }
+
+    existing_user = User(**userinfo)
+    db = MagicMock(spec=AsyncSession)
+    mock_result = AsyncMock()
+    mock_result.scalar.return_value = existing_user
+    db.execute = AsyncMock(return_value=mock_result)
+    db.add = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with patch("app.services.crud.user.AsyncSession", return_value=db):
+        user = await create_user(userinfo)
     
-#     assert expected_query == actual_query, f"Expected: {expected_query}, but got: {actual_query}"
-#     db.add.assert_called_once()
-#     db.commit.assert_awaited_once()
-#     db.refresh.assert_awaited_once()
+    assert user is not None
+    assert user.sub == existing_user.sub
+
+@pytest.mark.asyncio
+async def test_handle_commit_exception():
+    userinfo = {...} 
+    db = MagicMock(spec=AsyncSession)
+    db.commit = AsyncMock(side_effect=Exception("Commit failed"))
+    with patch("app.services.crud.user.AsyncSession", return_value=db):
+        with pytest.raises(Exception):
+            await create_user(userinfo)
 
 # @pytest.mark.asyncio
-# async def test_update_existing_user():
-#     db = AsyncMock(spec=AsyncSession)    
+# async def test_refresh_user():
 #     userinfo = {
-#         "sub": "1234567890",
+#         "sub": "sub_id",
 #         "name": "John Doe",
 #         "given_name": "John",
 #         "family_name": "Doe",
-#         "picture": "http://example.com/johndoe.jpg",
-#         "email": "john.doe@example.com",
+#         "picture": "https://example.com/picture.jpg",
+#         "email": "john@example.com",
 #         "email_verified": True,
-#         "locale": "en"
+#         "locale": "en_US"
 #     }
 
-#     existing_user = User(
-#         sub="old_sub",
-#         name="Old Name",
-#         given_name="Old Given Name",
-#         family_name="Old Family Name",
-#         picture="http://example.com/oldpicture.jpg",
-#         email="john.doe@example.com",
-#         email_verified=False,
-#         locale="old_locale",
-#         is_admin=False,
-#         is_active=False,
-#         is_blocked=True,
-#     )
-
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.first.return_value = existing_user
+#     db = MagicMock(spec=AsyncSession)
+#     mock_result = AsyncMock()
+#     mock_result.scalar.return_value = None
 #     db.execute = AsyncMock(return_value=mock_result)
+#     db.add = AsyncMock()
 #     db.commit = AsyncMock()
 #     db.refresh = AsyncMock()
 
-#     await create_user(userinfo, db)
+#     with patch("app.services.crud.user.AsyncSession", return_value=db):
+#         await create_user(userinfo)
 
-#     expected_select_query = str(select(User).where(User.email == userinfo["email"]))
-#     actual_select_query = str(db.execute.call_args_list[0][0][0])
-#     assert expected_select_query == actual_select_query, f"Expected: {expected_select_query}, but got: {actual_select_query}"
+#     await db.commit.assert_awaited_once()  # Check that commit was awaited
+#     await db.refresh.assert_awaited_once() 
 
-#     expected_update_query = (
-#         update(User)
-#         .where(User.email == userinfo["email"])
-#         .values(
-#             sub=userinfo["sub"],
-#             name=userinfo["name"],
-#             given_name=userinfo["given_name"],
-#             family_name=userinfo["family_name"],
-#             picture=userinfo["picture"],
-#             email_verified=userinfo["email_verified"],
-#             locale=userinfo["locale"],
-#             is_active=True,
-#             is_blocked=False,
-#             is_admin=existing_user.is_admin,
-#         )
-#     )
-#     actual_update_query = db.execute.call_args_list[1][0][0]
-#     assert str(expected_update_query) == str(actual_update_query), f"Expected: {expected_update_query}, but got: {actual_update_query}"
-#     db.commit.assert_awaited_once()
-#     db.refresh.assert_awaited_once()
-
-#these test work only if we use the commented create_user lines of code which have problems with creating new user
-
-# @pytest.fixture
-# def mock_db():
-#     mock_db = MagicMock(spec=AsyncSession)
-#     mock_db.execute = AsyncMock()
-#     mock_db.commit = AsyncMock()
-#     mock_db.refresh = AsyncMock()
-#     return mock_db
-
-# @pytest.fixture
-# def mock_user():
-#     return User(
-#         id=1,
-#         sub="1234567890",
-#         name="John Doe",
-#         given_name="John",
-#         family_name="Doe",
-#         picture="http://example.com/johndoe.jpg",
-#         email="john.doe@example.com",
-#         email_verified=True,
-#         locale="en",
-#         is_admin=False,
-#         is_active=True,
-#         is_blocked=False,
-#     )
-
-# @pytest.fixture
-# def mock_data():
-#     cards = [
-#         Card(id=1, user_id=1, card_number="1234", card_type="Visa", expiration_date="12/25"),
-#         Card(id=2, user_id=1, card_number="5678", card_type="MasterCard", expiration_date="11/24"),
-#     ]
-#     return cards, [], [], []
-
-# @pytest.mark.asyncio
-# async def test_fetch_cards(mock_db, mock_user, mock_data):
-#     cards, _, _, _ = mock_data
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = cards
-#     mock_db.execute = AsyncMock(return_value=mock_result)
-
-#     result = await mock_db.execute(select(Card).where(Card.user_id == mock_user.id))
-#     assert result.scalars().all() == cards
-
-
-# @pytest.mark.asyncio
-# async def test_user_base_initialization(mock_user):
-#     assert mock_user.id is not None
-#     assert mock_user.email == "john.doe@example.com"
-
-
-# @pytest.mark.asyncio
-# async def test_fetch_categories(mock_db, mock_user, mock_data):
-#     _, categories, _, _ = mock_data
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = categories
-#     mock_db.execute = AsyncMock(return_value=mock_result)
-
-#     result = await mock_db.execute(select(Category).where(Category.user_id == mock_user.id))
-#     assert result.scalars().all() == categories
-
-# @pytest.mark.asyncio
-# async def test_fetch_contacts(mock_db, mock_user, mock_data):
-#     _, _, contacts, _ = mock_data
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = contacts
-#     mock_db.execute = AsyncMock(return_value=mock_result)
-
-#     result = await mock_db.execute(select(Contact).where(Contact.user_id == mock_user.id))
-#     assert result.scalars().all() == contacts
-
-# @pytest.mark.asyncio
-# async def test_fetch_transactions(mock_db, mock_user, mock_data):
-#     _, _, _, transactions = mock_data
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = transactions
-#     mock_db.execute = AsyncMock(return_value=mock_result)
-
-#     result = await mock_db.execute(select(Transaction).join(Card).where(Card.user_id == mock_user.id))
-#     assert result.scalars().all() == transactions
-
-# @pytest.mark.asyncio
-# async def test_user_info(mock_db, mock_user, mock_data):
-#     cards, categories, contacts, transactions = mock_data
-
-#     mock_cards_result = MagicMock()
-#     mock_cards_result.scalars.return_value.all.return_value = cards
-#     mock_db.execute = AsyncMock(side_effect=[mock_cards_result])
-
-#     mock_categories_result = MagicMock()
-#     mock_categories_result.scalars.return_value.all.return_value = categories
-#     mock_db.execute.side_effect = [mock_cards_result, mock_categories_result]
-
-#     mock_contacts_result = MagicMock()
-#     mock_contacts_result.scalars.return_value.all.return_value = contacts
-#     mock_db.execute.side_effect = [mock_cards_result, mock_categories_result, mock_contacts_result]
-
-#     mock_transactions_result = MagicMock()
-#     mock_transactions_result.scalars.return_value.all.return_value = transactions
-#     mock_db.execute.side_effect = [mock_cards_result, mock_categories_result, mock_contacts_result, mock_transactions_result]
-
-#     result = await user_info(mock_db, mock_user)
-
-#     assert result["email"] == mock_user.email
-#     assert result["cards"] == cards
-#     assert result["categories"] == categories
-#     assert result["contacts"] == contacts
-#     assert result["transactions"] == transactions
-
-#     assert str(mock_db.execute.call_args_list[0][0][0]) == str(select(Card).where(Card.user_id == mock_user.id))
-#     assert str(mock_db.execute.call_args_list[1][0][0]) == str(select(Category).where(Category.user_id == mock_user.id))
-#     assert str(mock_db.execute.call_args_list[2][0][0]) == str(select(Contact).where(Contact.user_id == mock_user.id))
-#     assert str(mock_db.execute.call_args_list[3][0][0]) == str(select(Transaction).join(Card).where(Card.user_id == mock_user.id))

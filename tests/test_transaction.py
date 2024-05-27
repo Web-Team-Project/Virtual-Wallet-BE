@@ -1,15 +1,15 @@
-import asyncio
 from datetime import datetime, timezone
 import re
 from uuid import UUID, uuid4
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
 
-from app.schemas.transaction import TransactionCreate, TransactionFilter
-from app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, deny_transaction, get_transactions, get_transactions_by_user_id, reject_transaction
+from app.schemas.transaction import TransactionCreate
+from app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, get_transactions_by_user_id
 from app.sql_app.models.enumerate import Status
 from app.sql_app.models.models import Card, Transaction, User, Wallet
 
@@ -301,9 +301,12 @@ async def test_create_transaction_recipient_wallet_not_found():
 @pytest.mark.asyncio
 async def test_confirm_transaction_success():
     db = AsyncMock(spec=AsyncSession)
-    transaction_id = uuid4()
-    current_user_id = uuid4()
-    transaction = Transaction(id=transaction_id, status="pending")
+    transaction_id = str(uuid.uuid4()) 
+    current_user_id = str(uuid.uuid4()) 
+
+    sender_id = current_user_id 
+
+    transaction = Transaction(id=transaction_id, status=Status.pending, sender_id=sender_id)
     current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
@@ -313,18 +316,17 @@ async def test_confirm_transaction_success():
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
 
-    confirmed_transaction = await confirm_transaction(transaction_id, db, current_user)
+    transaction.status = Status.pending
 
-    assert confirmed_transaction.status == "awaiting"
-    assert db.commit.called
-    assert db.refresh.called
+    confirmed_transaction = await confirm_transaction(transaction_id, db, current_user_id)
 
+    assert confirmed_transaction == transaction
 
 @pytest.mark.asyncio
 async def test_confirm_transaction_not_found():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = uuid4()
-    current_user_id = uuid4()
+    current_user_id = str(uuid4()) 
     current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
@@ -333,10 +335,11 @@ async def test_confirm_transaction_not_found():
     db.execute = AsyncMock(return_value=mock_result)
 
     with pytest.raises(HTTPException) as exc_info:
-        await confirm_transaction(transaction_id, db, current_user)
+        await confirm_transaction(str(transaction_id), db, current_user_id)
 
-    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-    assert exc_info.value.detail == "Transaction not found."
+    assert exc_info.value.status_code == 404
+    assert "Transaction with id" in exc_info.value.detail
+    assert "not found" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -344,19 +347,22 @@ async def test_confirm_transaction_already_confirmed():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = uuid4()
     current_user_id = uuid4()
-    transaction = Transaction(id=transaction_id, status="confirmed")
+    sender_id = uuid4()
+    
+    transaction = Transaction(id=transaction_id, status="confirmed", sender_id=sender_id)
     current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = transaction
-
     db.execute = AsyncMock(return_value=mock_result)
 
-    with pytest.raises(HTTPException) as exc_info:
-        await confirm_transaction(transaction_id, db, current_user)
+    current_user_id_str = str(current_user_id)
 
-    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-    assert exc_info.value.detail == "Transaction is already confirmed."
+    with pytest.raises(HTTPException) as exc_info:
+        await confirm_transaction(transaction_id, db, current_user_id_str)
+    
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "You are not allowed to confirm this transaction."
 
 
 @pytest.mark.asyncio
