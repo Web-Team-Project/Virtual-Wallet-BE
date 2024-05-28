@@ -132,3 +132,5 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession)
 
     request.session["user"] = {"id": str(user.id), "email": user.email}
     return request.session["user"]
+
+

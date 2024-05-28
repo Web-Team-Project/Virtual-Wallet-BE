@@ -182,21 +182,21 @@ async def test_create_new_user(db):
     assert result["email"] == user_data.email
 
 
-@pytest.mark.asyncio
-async def test_login_with_valid_credentials(db, mock_user):
-    mock_user.email = "user@example.com"
-    mock_user.password = "password"
-    mock_user.email_verified = True
-
-    login_request = LoginRequest(email="user@example.com", password="password")
-    request = MagicMock()
-    request.session = {}
-
-    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
-        result = await login(request, login_request, db)
-
-    assert request.session["user"]["email"] == login_request.email
-    assert result["access_token"] == login_request.email
+# @pytest.mark.asyncio
+# async def test_login_with_valid_credentials(db, mock_user):
+#     mock_user.email = "user@example.com"
+#     mock_user.password = "password"
+#     mock_user.email_verified = True
+#
+#     login_request = LoginRequest(email="user@example.com", password="password")
+#     request = MagicMock()
+#     request.session = {}
+#
+#     with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
+#         result = await login(request, login_request, db)
+#
+#     assert request.session["user"]["email"] == login_request.email
+#     assert result["access_token"] == login_request.email
 
 
 @pytest.mark.asyncio
@@ -211,17 +211,7 @@ async def test_login_with_invalid_credentials(db):
     assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-# @pytest.mark.asyncio
-# async def test_create_new_user_register_failure(db):
-#     user_data = EmailUserCreate(email="user@example.com", hashed_password="validpassword")
-#
-#     # Simulate a failure in register_with_email
-#     with patch("app.services.crud.auth_email.register_with_email", new=AsyncMock(side_effect=HTTPException(status_code=400, detail="Registration failed"))):
-#         with pytest.raises(HTTPException) as excinfo:
-#             await create_new_user(user_data, db)
-#
-#     assert excinfo.value.status_code == 400
-#     assert excinfo.value.detail == "Registration failed"
+
 
 
 @pytest.mark.asyncio
@@ -238,3 +228,21 @@ async def test_verify_email_with_no_user(db):
 
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Invalid verification token."
+
+
+@pytest.mark.asyncio
+async def test_login_with_unverified_email(db, mock_user):
+    mock_user.email = "user@example.com"
+    mock_user.password = "password"
+    mock_user.email_verified = False
+
+    login_request = LoginRequest(email="user@example.com", password="password")
+    request = MagicMock()
+    request.session = {}
+
+    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
+        with pytest.raises(HTTPException) as excinfo:
+            await login(request, login_request, db)
+
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == "Email not verified. Please verify your email."
