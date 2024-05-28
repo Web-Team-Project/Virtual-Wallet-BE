@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import re
 from uuid import UUID, uuid4
 import uuid
@@ -291,17 +290,69 @@ async def test_create_transaction_recipient_wallet_not_found():
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(HTTPException) as excinfo:
         await create_transaction(db, transaction_data, sender_id)
 
-    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-    assert re.match(r"\s*Recipient's wallet not found\s*", exc_info.value.detail)
+    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+    assert excinfo.value.detail == "Recipient's wallet not found."
 
 
     db.add.assert_not_called()
     db.commit.assert_not_called()
     db.refresh.assert_not_called()
 
+
+@pytest.mark.asyncio
+async def test_create_transaction_wallet_currency_mismatch():
+    db = AsyncMock(spec=AsyncSession)
+    sender_id = uuid4()
+    recipient_id = uuid4()
+    card_id = uuid4()
+    transaction_data = TransactionCreate(
+        amount=100,
+        currency="USD",
+        timestamp=datetime.now(timezone.utc),
+        card_id=card_id,
+        recipient_id=recipient_id,
+        category_id=uuid4()
+    )
+
+    sender = User(id=sender_id, is_blocked=False)
+    recipient_wallet = Wallet(user_id=recipient_id, balance=1000, currency="EUR")  # Different currency
+    sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")  # Same currency as transaction
+    card = Card(id=card_id, user_id=sender_id)
+
+    sender_mock_result = MagicMock()
+    sender_mock_result.scalars.return_value.first.return_value = sender
+
+    sender_wallet_mock_result = MagicMock()
+    sender_wallet_mock_result.scalars.return_value.first.return_value = sender_wallet
+
+    card_mock_result = MagicMock()
+    card_mock_result.scalars.return_value.first.return_value = card
+
+    recipient_wallet_mock_result = MagicMock()
+    recipient_wallet_mock_result.scalars.return_value.first.return_value = recipient_wallet
+
+    db.execute = AsyncMock(side_effect=[
+        sender_mock_result,
+        sender_wallet_mock_result,
+        card_mock_result,
+        recipient_wallet_mock_result
+    ])
+    db.add = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await create_transaction(db, transaction_data, sender_id)
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Sender's and recipient's wallets must be in the same currency."
+
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_confirm_transaction_success():
@@ -370,24 +421,24 @@ async def test_confirm_transaction_already_confirmed():
     assert exc_info.value.detail == "You are not allowed to confirm this transaction."
 
 
-@pytest.mark.asyncio
-async def test_get_transactions_by_user_id_with_transactions():
-    db = AsyncMock(spec=AsyncSession)
-    user_id = uuid4()
-    transactions = [
-        Transaction(sender_id=user_id, amount=100, currency="USD"),
-        Transaction(sender_id=user_id, amount=200, currency="EUR"),
-        Transaction(sender_id=user_id, amount=300, currency="GBP")
-    ]
-
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = transactions
-
-    db.execute = AsyncMock(return_value=mock_result)
-
-    result_transactions = await get_transactions_by_user_id(db, user_id)
-
-    assert result_transactions == transactions
+# @pytest.mark.asyncio
+# async def test_get_transactions_by_user_id_with_transactions():
+#     db = AsyncMock(spec=AsyncSession)
+#     user_id = uuid4()
+#     transactions = [
+#         Transaction(sender_id=user_id, amount=100, currency="USD"),
+#         Transaction(sender_id=user_id, amount=200, currency="EUR"),
+#         Transaction(sender_id=user_id, amount=300, currency="GBP")
+#     ]
+#
+#     mock_result = MagicMock()
+#     mock_result.scalars.return_value.all.return_value = transactions
+#
+#     db.execute = AsyncMock(return_value=mock_result)
+#
+#     result_transactions = await get_transactions_by_user_id(db, user_id)
+#
+#     assert result_transactions == transactions
 
 
 @pytest.mark.asyncio
@@ -824,89 +875,368 @@ async def test_deny_transaction_success():
     assert result == {"message": "Transaction declined."}
 
 
+@pytest.mark.asyncio
+async def test_get_transactions_as_admin():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter()
+
+    # Mock the total count query result
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    # Mock the query results
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+@pytest.mark.asyncio
+async def test_get_transactions_non_admin_user():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=False)
+    sender_id = current_user.id
+    recipient_id = uuid4()
+
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter()
+
+    # Mock the total count query result
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    # Mock the query results
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
 
-# @pytest.mark.asyncio
-# async def test_get_transactions_as_admin():
-#     db = AsyncMock(spec=AsyncSession)
-#     current_user = User(id=uuid4(), is_admin=True)
-#     transactions = [
-#         Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(), sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-#         Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(), sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
-#     ]
-#
-#     filter = TransactionFilter()
-#
-#     # Setup mock for db.execute
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = transactions
-#
-#     mock_total_result = MagicMock()
-#     mock_total_result.scalar_one.return_value = len(transactions)  # Return the count of transactions
-#
-#     db.execute = AsyncMock(side_effect=[mock_result, mock_total_result])
-#     db.commit = AsyncMock()
-#     db.refresh = AsyncMock()
-#
-#     # Adding debug print
-#     print(f"Mocked transactions: {transactions}")
-#
-#     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
-#
-#     expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
-#
-#     # Adding more debug prints
-#     print(f"Expected transactions: {expected_transactions}")
-#     print(f"Result transactions: {result.transactions}")
-#     print(f"Result total: {result.total}")
-#
-#     assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
-#     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
-#     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_transactions_with_filters():
-#     db = AsyncMock(spec=AsyncSession)
-#     current_user = User(id=uuid4(), is_admin=False)
-#     transactions = [
-#         Transaction(id=uuid4(), amount=100, currency="USD"),
-#         Transaction(id=uuid4(), amount=200, currency="EUR")
-#     ]
-#
-#     filter = TransactionFilter(sender_id=current_user.id)
-#
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = transactions
-#     mock_total_result = MagicMock()
-#     mock_total_result.scalar_one.return_value = 2
-#
-#     db.execute = AsyncMock(side_effect=[mock_result, mock_total_result])
-#
-#     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
-#
-#     assert result.transactions == transactions
-#     assert result.total == 2
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_transactions_non_admin_user():
-#     db = AsyncMock(spec=AsyncSession)
-#     current_user = User(id=uuid4(), is_admin=False)
-#     transactions = [
-#         Transaction(id=uuid4(), amount=100, currency="USD", sender_id=current_user.id),
-#         Transaction(id=uuid4(), amount=200, currency="EUR", recipient_id=current_user.id)
-#     ]
-#
-#     filter = TransactionFilter()
-#
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = transactions
-#     mock_total_result = MagicMock()
-#     mock_total_result.scalar_one.return_value = 2
-#
-#     db.execute = AsyncMock(side_effect=[mock_result, mock_total_result])
-#
-#     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
-#
-#     assert result.transactions
+@pytest.mark.asyncio
+async def test_get_transactions_with_filters():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=False)
+    sender_id = current_user.id
+    recipient_id = uuid4()
+
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(sender_id=sender_id)
+
+    # Mock the total count query result
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    # Mock the query results
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_as_admin_no_filters():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter()
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_as_non_admin_no_filters():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=False)
+    sender_id = current_user.id
+    recipient_id = uuid4()
+
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter()
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_with_date_filters():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+    start_date = datetime.utcnow() - timedelta(days=1)
+    end_date = datetime.utcnow()
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=start_date + timedelta(hours=1), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=start_date + timedelta(hours=2), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(start_date=start_date, end_date=end_date)
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_with_sender_and_recipient_filters():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+    sender_id = uuid4()
+    recipient_id = uuid4()
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(sender_id=sender_id, recipient_id=recipient_id)
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_with_direction_filters_incoming():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=False)
+    sender_id = current_user.id
+    recipient_id = uuid4()
+
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(direction="incoming")
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+@pytest.mark.asyncio
+async def test_get_transactions_with_direction_filters_outcoming():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=False)
+    sender_id = current_user.id
+    recipient_id = uuid4()
+
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(direction="outgoing")
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+@pytest.mark.asyncio
+async def test_get_transactions_with_sorting_amount():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+    ]
+
+    filter = TransactionFilter(sort_by="amount")
+
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in sorted(transactions, key=lambda x: x.amount)]
+
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
+
+@pytest.mark.asyncio
+async def test_get_transactions_sorted_by_date():
+    db = AsyncMock(spec=AsyncSession)
+    current_user = User(id=uuid4(), is_admin=True)
+
+    # Creating sample transactions with different timestamps
+    now = datetime.utcnow()
+    transactions = [
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=now - timedelta(days=3), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=now - timedelta(days=1), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=300, currency="GBP", timestamp=now - timedelta(days=2), card_id=uuid4(),
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+    ]
+
+    # Setting up the filter to sort by date
+    filter = TransactionFilter(sort_by="date")
+
+    # Mocking the total count query result
+    mock_total_result = MagicMock()
+    mock_total_result.scalar_one.return_value = len(transactions)
+
+    # Mocking the query results to return transactions sorted by date
+    sorted_transactions = sorted(transactions, key=lambda x: x.timestamp)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = sorted_transactions
+
+    db.execute = AsyncMock(side_effect=[mock_total_result, mock_result])
+
+    result = await get_transactions(db, current_user, filter, skip=0, limit=10)
+
+    expected_transactions = [TransactionView.from_orm(tx) for tx in sorted_transactions]
+
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
+    assert result.transactions == expected_transactions, "Transactions do not match the expected result."

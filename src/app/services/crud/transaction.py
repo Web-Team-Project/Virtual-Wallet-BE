@@ -133,7 +133,10 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
     query = select(Transaction).options(selectinload(Transaction.card), selectinload(Transaction.category))
 
     if not current_user.is_admin:
-        query = query.where(or_(Transaction.sender_id == current_user.id, Transaction.recipient_id == current_user.id))
+        query = query.where(
+            (Transaction.sender_id == current_user.id) |
+            (Transaction.recipient_id == current_user.id)
+        )
 
     if filter.start_date:
         query = query.where(Transaction.timestamp >= filter.start_date)

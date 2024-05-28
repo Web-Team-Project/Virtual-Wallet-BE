@@ -61,7 +61,7 @@ class TransactionFilter(BaseModel):
 
 
 class TransactionList(BaseModel):
-    transactions: List[Transaction]
+    transactions: List[TransactionView]  # Use TransactionView instead of Transaction
     total: int
 
 
