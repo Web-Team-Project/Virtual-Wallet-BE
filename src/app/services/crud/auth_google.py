@@ -73,7 +73,7 @@ async def auth_callback(request: Request):
     await create_user(userinfo)
 
     request.session["user"] = userinfo
-    return RedirectResponse("/swagger")
+    return RedirectResponse("https://localhost:3000/home")
 
 
 async def logout(request: Request):
