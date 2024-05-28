@@ -21,12 +21,12 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Sender not found.")
     if sender.is_blocked:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Sender is blocked.")
-    
+
     sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency))
     sender_wallet = sender_wallet_result.scalars().first()
     if not sender_wallet:
@@ -233,14 +233,14 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
     """
     current_user_id = UUID(current_user_id)
 
-    async with db as session:
-        result = await session.execute(select(Transaction).where(Transaction.id == transaction_id))
-        transaction = result.scalar_one_or_none()
+    async with db.begin():
+        result = await db.execute(select(Transaction).where(Transaction.id == transaction_id))
+        transaction = result.scalars().first()
         
         if not transaction:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Transaction with id {transaction_id} not found.")
-        
+
         if transaction.recipient_id != current_user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="You are not allowed to reject this transaction.")
@@ -248,15 +248,15 @@ async def reject_transaction(db: AsyncSession, transaction_id: UUID, current_use
         if transaction.status != Status.awaiting:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="You can only reject awaiting transactions.")
-        
 
         transaction.status = Status.declined
 
-        await session.commit()
+        await db.commit()
 
-        await session.refresh(transaction)
+        await db.refresh(transaction)
         
         return transaction
+
 
 async def deny_transaction(db: AsyncSession, current_user: User, transaction_id: UUID):
     """
