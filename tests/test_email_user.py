@@ -182,22 +182,21 @@ async def test_create_new_user(db):
     assert result["email"] == user_data.email
 
 
-# @pytest.mark.asyncio
-# async def test_login_with_valid_credentials(db, mock_user):
-#     mock_user.email = "user@example.com"
-#     mock_user.password = "password"
-#     mock_user.email_verified = True
-#
-#     login_request = LoginRequest(email="user@example.com", password="password")
-#     request = MagicMock()
-#     request.session = {}
-#
-#     with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
-#         result = await login(request, login_request, db)
-#
-#     assert request.session["user"]["email"] == login_request.email
-#     assert result["access_token"] == login_request.email
+@pytest.mark.asyncio
+async def test_login_with_valid_credentials(db, mock_user):
+    mock_user.email = "user@example.com"
+    mock_user.password = "password"
+    mock_user.email_verified = True
 
+    login_request = LoginRequest(email="user@example.com", password="password")
+    request = MagicMock()
+    request.session = {}
+
+    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
+        result = await login(request, login_request, db)
+
+    assert request.session["user"]["email"] == login_request.email
+    assert result["email"] == login_request.email
 
 @pytest.mark.asyncio
 async def test_login_with_invalid_credentials(db):
