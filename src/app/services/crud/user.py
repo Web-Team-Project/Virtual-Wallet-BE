@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, update
 from sqlalchemy.future import select
 from app.core.config import get_settings
 from app.schemas.user import UserBase
@@ -12,6 +12,7 @@ from twilio.rest import Client
 
 settings = get_settings()
 client = Client(settings.ACCOUNT_SID, settings.AUTH_TOKEN)
+
 
 async def create_user(userinfo):
     """
@@ -74,7 +75,7 @@ async def user_info(db: AsyncSession, current_user: UserBase):
             "cards": result_cards.scalars().all(),
             "categories": result_categories.scalars().all(),
             "contacts": result_contacts.scalars().all(),
-            "transactions": result_transactions.scalars().all(),}
+            "transactions": result_transactions.scalars().all(), }
 
 
 async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User:
@@ -123,11 +124,13 @@ def send_verification_code(phone_number: str):
     Send a verification code to the user's phone number.
     """
     try:
-        verification = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel="sms")
+        verification = client.verify.v2.services(
+            settings.VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel="sms")
         print("Verification code sent successfully! SID:", verification.sid)
     except Exception as e:
         print("Failed to send verification code:", str(e))
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to send verification code.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to send verification code.")
 
 
 def verify_code(phone_number: str, code: str):
@@ -140,7 +143,9 @@ def verify_code(phone_number: str, code: str):
             bool: True if the code is approved, otherwise False.
     """
     try:
-        verification_check = client.verify.v2.services(settings.VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code)
+        verification_check = (
+            client.verify.v2.services(
+                settings.VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code))
         if verification_check.status == "approved":
             return True
         else:
@@ -237,7 +242,7 @@ async def deactivate_user(user_id: UUID, db: AsyncSession, current_user: User) -
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
     result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalars().first()
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
@@ -260,14 +265,15 @@ async def block_user(user_id: UUID, db: AsyncSession, current_user: User):
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
-    db_user = await get_user_by_id(user_id, db)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="User not found.")
-    db_user.is_blocked = True
+    user.is_blocked = True
     await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    await db.refresh(user)
+    return {"message": "User blocked successfully."}
 
 
 async def unblock_user(user_id: UUID, db: AsyncSession, current_user: User):
@@ -283,14 +289,15 @@ async def unblock_user(user_id: UUID, db: AsyncSession, current_user: User):
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                             detail="You are not authorized to perform this action.")
-    db_user = await get_user_by_id(user_id, db)
-    if not db_user:
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail="User not found.")
-    db_user.is_blocked = False
+    user.is_blocked = False
     await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    await db.refresh(user)
+    return {"message": "User unblocked successfully."}
 
 
 async def search_users(db: AsyncSession, skip: int, limit: int, current_user: User, search: str = None):

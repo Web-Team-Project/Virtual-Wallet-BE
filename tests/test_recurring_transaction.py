@@ -842,57 +842,13 @@ async def test_process_due_recurring_transactions_weekly():
     ])
     db.commit = AsyncMock()
 
-    # Mock the create_transaction function to avoid actual creation logic
     with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
         await process_recurring_transactions(db)
 
     assert recurring_transaction.next_execution_date == current_time + timedelta(weeks=1)
     db.commit.assert_called()
 
-@pytest.mark.asyncio
-async def test_process_due_recurring_transactions_weekly():
-    db = AsyncMock(spec=AsyncSession)
-    sender_id = uuid4()
-    recipient_id = uuid4()
-    card_id = uuid4()
-    currency = "USD"
-    current_time = datetime.now(pytz.utc)
 
-    recurring_transaction = RecurringTransaction(
-        id=uuid4(),
-        user_id=sender_id,
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
-        interval=30,
-        interval_type=IntervalType.WEEKLY,
-        next_execution_date=current_time,
-        currency=currency
-    )
-
-    sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
-
-    db.execute = AsyncMock(side_effect=[
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
-    ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
-
-    # Mock the create_transaction function to avoid actual creation logic
-    with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
-        await process_recurring_transactions(db)
-
-    assert recurring_transaction.next_execution_date == current_time + timedelta(weeks=1)
-    db.commit.assert_called()
-    db.refresh.assert_called()
 
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_monthly():
