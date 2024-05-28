@@ -85,7 +85,8 @@ async def process_recurring_transactions(db: AsyncSession):
                                              timestamp=datetime.now(pytz.utc),
                                              card_id=recurring_transaction.card_id,
                                              recipient_id=recurring_transaction.recipient_id,
-                                             category_id=recurring_transaction.category_id,)
+                                             category_id=recurring_transaction.category_id,
+                                             currency=recurring_transaction.currency)
         try:
             await create_transaction(db, transaction_data, recurring_transaction.user_id)
             if recurring_transaction.interval_type == IntervalType.DAILY:
