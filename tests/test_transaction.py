@@ -318,8 +318,8 @@ async def test_create_transaction_wallet_currency_mismatch():
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    recipient_wallet = Wallet(user_id=recipient_id, balance=1000, currency="EUR")  # Different currency
-    sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")  # Same currency as transaction
+    recipient_wallet = Wallet(user_id=recipient_id, balance=1000, currency="EUR")
+    sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")
     card = Card(id=card_id, user_id=sender_id)
 
     sender_mock_result = MagicMock()
@@ -419,26 +419,6 @@ async def test_confirm_transaction_already_confirmed():
     
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == "You are not allowed to confirm this transaction."
-
-
-# @pytest.mark.asyncio
-# async def test_get_transactions_by_user_id_with_transactions():
-#     db = AsyncMock(spec=AsyncSession)
-#     user_id = uuid4()
-#     transactions = [
-#         Transaction(sender_id=user_id, amount=100, currency="USD"),
-#         Transaction(sender_id=user_id, amount=200, currency="EUR"),
-#         Transaction(sender_id=user_id, amount=300, currency="GBP")
-#     ]
-#
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.all.return_value = transactions
-#
-#     db.execute = AsyncMock(return_value=mock_result)
-#
-#     result_transactions = await get_transactions_by_user_id(db, user_id)
-#
-#     assert result_transactions == transactions
 
 
 @pytest.mark.asyncio
@@ -547,7 +527,7 @@ async def test_approve_transaction_unauthorized_user():
     transaction_id = uuid4()
     current_user_id = uuid4()
     sender_id = uuid4()
-    recipient_id = uuid4()  # Different from current_user_id
+    recipient_id = uuid4()
     amount = 100
 
     transaction = Transaction(id=transaction_id, sender_id=sender_id, recipient_id=recipient_id, amount=amount, status=Status.awaiting)
@@ -682,7 +662,7 @@ async def test_reject_transaction_unauthorized_user():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = uuid4()
     current_user_id = uuid4()
-    recipient_id = uuid4()  # Different from current_user_id
+    recipient_id = uuid4()
 
     transaction = Transaction(id=transaction_id, recipient_id=recipient_id, status=Status.awaiting)
 
@@ -888,11 +868,9 @@ async def test_get_transactions_as_admin():
 
     filter = TransactionFilter()
 
-    # Mock the total count query result
     mock_total_result = MagicMock()
     mock_total_result.scalar_one.return_value = len(transactions)
 
-    # Mock the query results
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = transactions
 
@@ -923,11 +901,9 @@ async def test_get_transactions_non_admin_user():
 
     filter = TransactionFilter()
 
-    # Mock the total count query result
     mock_total_result = MagicMock()
     mock_total_result.scalar_one.return_value = len(transactions)
 
-    # Mock the query results
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = transactions
 
@@ -959,11 +935,9 @@ async def test_get_transactions_with_filters():
 
     filter = TransactionFilter(sender_id=sender_id)
 
-    # Mock the total count query result
     mock_total_result = MagicMock()
     mock_total_result.scalar_one.return_value = len(transactions)
 
-    # Mock the query results
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = transactions
 
@@ -1208,7 +1182,6 @@ async def test_get_transactions_sorted_by_date():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=True)
 
-    # Creating sample transactions with different timestamps
     now = datetime.utcnow()
     transactions = [
         Transaction(id=uuid4(), amount=100, currency="USD", timestamp=now - timedelta(days=3), card_id=uuid4(),
@@ -1219,14 +1192,11 @@ async def test_get_transactions_sorted_by_date():
                     sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
     ]
 
-    # Setting up the filter to sort by date
     filter = TransactionFilter(sort_by="date")
 
-    # Mocking the total count query result
     mock_total_result = MagicMock()
     mock_total_result.scalar_one.return_value = len(transactions)
 
-    # Mocking the query results to return transactions sorted by date
     sorted_transactions = sorted(transactions, key=lambda x: x.timestamp)
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = sorted_transactions
