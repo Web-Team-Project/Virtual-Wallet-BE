@@ -14,9 +14,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11.3"
-      - name: Install pytest and pytest-cov
-        run: pip install pytest pytest-cov
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
       - name: Run Tests
         run: pytest --cov-branch --cov-fail-under=30
       - uses: JorgeLNJunior/render-deploy@v1.4.4
