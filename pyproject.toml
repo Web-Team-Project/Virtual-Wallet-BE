@@ -21,9 +21,11 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "autoflake==2.2.1", "black==23.9.1", "isort[colors]==5.8.0", "mypy==1.5.1", "pylint==3.0.0a7",
-    "pytest==7.4.2", "pytest-cov==4.1.0", "coverage==7.3.1"
+    "pytest==7.4.2", "pytest-cov==4.1.0"
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [project.urls]
 Source = "https://stash.gfk.com/projects/SQC/repos/sqc_modelmaker/browse"
