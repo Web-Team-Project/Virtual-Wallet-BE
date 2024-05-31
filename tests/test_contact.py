@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
 
-from app.schemas.contact import ContactCreate
-from app.services.crud.contact import create_contact, delete_contact, read_contact, read_contacts
-from app.sql_app.models.models import User, Contact
+from src.app.schemas.contact import ContactCreate
+from src.app.services.crud.contact import create_contact, delete_contact, read_contact, read_contacts
+from src.app.sql_app.models.models import User, Contact
 
 
 @pytest.mark.asyncio
