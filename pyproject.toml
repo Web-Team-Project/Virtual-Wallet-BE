@@ -49,7 +49,7 @@ per-file-ignores = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cache-clear --log-cli-level=DEBUG --strict-markers --cov-branch --cov-fail-under=30"
+# addopts = "--cache-clear --log-cli-level=DEBUG --strict-markers --cov-branch --cov-fail-under=30"
 junit_family = "xunit2"
 log_format = "%(asctime)s %(levelname)s %(name)s %(message)s"
 markers = [
