@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 import pytest
 from sqlalchemy import select, or_
-from app.sql_app.database import AsyncSessionLocal, Base, engine, get_db
-from app.schemas.user import UserBase
-from app.services.crud.user import create_user, user_info, get_user_by_email, get_user_by_id, get_user_by_phone, \
+from src.app.sql_app.database import AsyncSessionLocal, Base, engine, get_db
+from src.app.schemas.user import UserBase
+from src.app.services.crud.user import create_user, user_info, get_user_by_email, get_user_by_id, get_user_by_phone, \
     update_user_role, deactivate_user, block_user, unblock_user, search_users
-from app.sql_app.models.models import Card, Category, Contact, Transaction, User
+from src.app.sql_app.models.models import Card, Category, Contact, Transaction, User
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import UUID
 from fastapi import HTTPException, status

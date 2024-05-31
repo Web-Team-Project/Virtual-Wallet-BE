@@ -8,11 +8,11 @@ import pytz
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
-from app.schemas.transaction import RecurringTransactionCreate, TransactionCreate
-from app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions, \
+from src.app.schemas.transaction import RecurringTransactionCreate, TransactionCreate
+from src.app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions, \
     cancel_recurring_transaction, get_recurring_transactions
-from app.sql_app.models.enumerate import IntervalType
-from app.sql_app.models.models import Card, User, Wallet, RecurringTransaction
+from src.app.sql_app.models.enumerate import IntervalType
+from src.app.sql_app.models.models import Card, User, Wallet, RecurringTransaction
 
 
 @pytest.mark.asyncio
