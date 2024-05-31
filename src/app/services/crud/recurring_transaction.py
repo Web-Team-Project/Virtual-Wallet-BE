@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy import and_, select
@@ -97,7 +98,11 @@ async def process_recurring_transactions(db: AsyncSession):
                 next_month = recurring_transaction.next_execution_date.month % 12 + 1
                 next_year = recurring_transaction.next_execution_date.year + \
                             (recurring_transaction.next_execution_date.month // 12)
-                recurring_transaction.next_execution_date = recurring_transaction.next_execution_date.replace(month=next_month, year=next_year)
+
+                last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
+                day = min(recurring_transaction.next_execution_date.day, last_day_of_next_month)
+                recurring_transaction.next_execution_date = recurring_transaction.next_execution_date.replace(
+                    month=next_month, year=next_year, day=day)
             db.add(recurring_transaction)
             await db.commit()
         except Exception as e:

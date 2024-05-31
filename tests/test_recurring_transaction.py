@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta
 from pydantic import ValidationError
 import pytest
@@ -20,7 +21,7 @@ async def test_create_recurring_transaction_success():
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
-    currency = "USD"  # Add the currency field
+    currency = "USD"
 
     transaction_data = RecurringTransactionCreate(
         card_id=card_id,
@@ -30,13 +31,13 @@ async def test_create_recurring_transaction_success():
         interval=30,
         interval_type="daily",
         next_execution_date="2024-06-01",
-        currency=currency  # Include currency in the test data
+        currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)  # Set wallet currency
+    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
     card = Card(id=card_id, user_id=sender_id)
-    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)  # Set wallet currency
+    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
@@ -68,7 +69,7 @@ async def test_create_recurring_transaction_sender_not_found():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -93,7 +94,7 @@ async def test_create_recurring_transaction_sender_blocked():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -122,7 +123,7 @@ async def test_create_recurring_transaction_sender_wallet_not_found():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -152,7 +153,7 @@ async def test_create_recurring_transaction_insufficient_funds():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -183,7 +184,7 @@ async def test_create_recurring_transaction_card_not_found():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -216,7 +217,7 @@ async def test_create_recurring_transaction_recipient_wallet_not_found():
         category_id=uuid4(),
         amount=100.0,
         interval=30,
-        interval_type="daily",  # Updated to use 'daily'
+        interval_type="daily",
         next_execution_date="2024-06-01",
         currency=currency
     )
@@ -275,7 +276,7 @@ async def test_create_recurring_transaction_interval_types():
 
         new_transaction = await create_recurring_transaction(db, transaction_data, sender_id)
 
-        assert new_transaction.interval_type.value == interval_type  # Convert enum to string
+        assert new_transaction.interval_type.value == interval_type
         db.commit.assert_called()
         db.refresh.assert_called_with(new_transaction)
 
@@ -291,7 +292,7 @@ async def test_create_recurring_transaction_invalid_interval_type():
             category_id=uuid4(),
             amount=100.0,
             interval=30,
-            interval_type="invalid",  # Invalid interval type
+            interval_type="invalid",
             next_execution_date="2024-06-01",
             currency="USD"
         )
@@ -335,7 +336,7 @@ async def test_process_due_recurring_transactions():
         currency=currency
     )
 
-    sender = User(id=sender_id, is_blocked=False)  # Ensure sender is not blocked
+    sender = User(id=sender_id, is_blocked=False)
     sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
     recipient_wallet = Wallet(user_id=recipient_id, balance=200.0, currency=currency)
     card = Card(id=card_id, user_id=sender_id)
@@ -799,7 +800,6 @@ async def test_process_due_recurring_transactions_daily():
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
 
-    # Mock the create_transaction function to avoid actual creation logic
     with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
         await process_recurring_transactions(db)
 
@@ -886,13 +886,14 @@ async def test_process_due_recurring_transactions_monthly():
     ])
     db.commit = AsyncMock()
 
-    # Mock the create_transaction function to avoid actual creation logic
     with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
         await process_recurring_transactions(db)
 
     next_month = (current_time.month % 12) + 1
     next_year = current_time.year + (current_time.month // 12)
-    expected_date = current_time.replace(month=next_month, year=next_year)
+    last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
+    expected_day = min(current_time.day, last_day_of_next_month)
+    expected_date = current_time.replace(month=next_month, year=next_year, day=expected_day)
 
     assert recurring_transaction.next_execution_date == expected_date
     db.commit.assert_called()
