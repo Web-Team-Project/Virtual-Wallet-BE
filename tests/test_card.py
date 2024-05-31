@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, MagicMock
 import pytest
 
-from src.app.schemas.card import CardCreate
-from src.app.schemas.user import User
-from src.app.services.crud.card import create_card, delete_card, read_card, update_card
-from src.app.sql_app.models.models import Card
+from app.schemas.card import CardCreate
+from app.schemas.user import User
+from app.services.crud.card import create_card, delete_card, read_card, update_card
+from app.sql_app.models.models import Card
 
 
 @pytest.mark.asyncio

@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
 
-from src.app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionView
-from src.app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, \
+from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionView
+from app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, \
     get_transactions_by_user_id, reject_transaction, get_transactions, deny_transaction
-from src.app.sql_app.models.enumerate import Status
-from src.app.sql_app.models.models import Card, Transaction, User, Wallet
+from app.sql_app.models.enumerate import Status
+from app.sql_app.models.models import Card, Transaction, User, Wallet
 
 def sql_string(query):
     """Convert SQLAlchemy query to its string representation."""
