@@ -4,10 +4,10 @@ from uuid import uuid4
 from fastapi import HTTPException
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.app.services.crud.auth_email import authenticate_user
-from src.app.services.crud.wallet import add_funds_to_wallet, check_balance, create_wallet, withdraw_funds_from_wallet
-from src.app.sql_app.models.enumerate import Currency
-from src.app.sql_app.models.models import User, Wallet
+from app.services.crud.auth_email import authenticate_user
+from app.services.crud.wallet import add_funds_to_wallet, check_balance, create_wallet, withdraw_funds_from_wallet
+from app.sql_app.models.enumerate import Currency
+from app.sql_app.models.models import User, Wallet
 
 
 @pytest.fixture

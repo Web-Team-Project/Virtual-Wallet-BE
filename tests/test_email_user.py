@@ -2,9 +2,9 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login
-from src.app.schemas.email_user import EmailUserCreate, LoginRequest
-from src.app.sql_app.models.models import User
+from app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login
+from app.schemas.email_user import EmailUserCreate, LoginRequest
+from app.sql_app.models.models import User
 from itsdangerous import SignatureExpired, BadSignature
 
 

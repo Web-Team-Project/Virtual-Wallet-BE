@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
 
-from src.app.schemas.category import CategoryCreate
-from src.app.services.crud.category import create_category, delete_category, read_categories
-from src.app.sql_app.models.models import Category, Transaction
+from app.schemas.category import CategoryCreate
+from app.services.crud.category import create_category, delete_category, read_categories
+from app.sql_app.models.models import Category, Transaction
 
 
 
