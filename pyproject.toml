@@ -6,31 +6,49 @@ build-backend = "hatchling.build"
 packages = ["src"]
 
 [project]
-name = "Virtual Wallet"
+name = "Virtual_Wallet"
 version = "0.0.1"
 description = "Virtual Wallet"
 classifiers = ["Private :: Do Not Upload", "Programming Language :: Python :: 3.11"]
 readme = "README.md"
 requires-python = ">=3.11"
 
-
 dependencies = [
-    "fastapi==0.109.1", "uvicorn==0.23.2", "environs==9.5.0", "pydantic-settings==2.0.3",
-    "SQLAlchemy==2.0.30", "fastapi-utilities==0.2.0"
+    "fastapi==0.109.1",
+    "uvicorn==0.23.2",
+    "environs==9.5.0",
+    "pydantic-settings==2.0.3",
+    "SQLAlchemy==2.0.30",
+    "fastapi-utilities==0.2.0",
+    "itsdangerous",
+    "apscheduler",
+    "asyncpg",
+    "httpx",
+    "twilio",
+    "pydantic",
+    "pydantic[email]",
+    "passlib",
+    "python-multipart"
 ]
 
 [project.optional-dependencies]
 test = [
-    "autoflake==2.2.1", "black==23.9.1", "isort[colors]==5.8.0", "mypy==1.5.1", "pylint==3.0.0a7",
-    "pytest==7.4.2", "pytest-cov==4.1.0", "coverage==7.3.1"
+    "autoflake==2.2.1",
+    "black==23.9.1",
+    "isort[colors]==5.8.0",
+    "mypy==1.5.1",
+    "pylint==3.0.0a7",
+    "pytest==7.4.2",
+    "pytest-cov==4.1.0",
+    "coverage==7.3.1"
 ]
 
 [project.urls]
-Source = "https://stash.gfk.com/projects/SQC/repos/sqc_modelmaker/browse"
+Source = "https://github.com/Web-Team-Project/Virtual-Wallet"
 
 [tool.black]
-exclude = '(\.git|\.mypy_cache|\.venv)'
-include = '\.pyi?$'
+exclude = '(.git|.mypy_cache|.venv)'
+include = '.pyi?$'
 target-version = ['py311']
 max-line-length = 88
 
@@ -43,8 +61,8 @@ max-complexity = 20
 count = true
 ignore = ["E203", "E127", "E128", "W291", "F821", "F811", "W503", "C417"]
 per-file-ignores = [
-    "tests/*:T20",
-    "integration_tests/*:T20",
+    "tests/:T20",
+    "integration_tests/:T20",
     "cli.py:T20"
 ]
 
@@ -63,9 +81,8 @@ testpaths = ["tests"]
 show_missing = true
 fail_under = 50
 omit = [
-  "**/tests/*",
-  "**/src/mm_reprocess/*",
-  "**/src/config.py",
-  "**/src/profiler_utils.py",
+  "tests/*",
+  "src/mm_reprocess/*",
+  "src/config.py",
+  "src/profiler_utils.py"
 ]
-

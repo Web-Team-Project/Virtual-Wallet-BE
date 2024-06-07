@@ -67,6 +67,6 @@ async def logout_route(request: Request):
             RedirectResponse: The redirect response to the home page.
     """
     async def _logout():
-        return await logout(request)
+        return await logout()
     
     return await process_request(_logout)

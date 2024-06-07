@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Callable, Any
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException, Request, status
@@ -9,38 +10,65 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.sql_app.database import engine
 from app.sql_app.models.models import User
-
+from jose import jwt
 
 logger = logging.getLogger(__name__)
 
 
-async def get_current_user(request: Request) -> User:
+def create_access_token(data: dict) -> str:
     """
-    Get the current user from the session.
+    Create an access token.
         Parameters:
-            request (Request): The request object.
+            data (dict): The data to encode.
         Returns:
-            User: The current user.
+            str: The encoded token.
     """
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=30)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, "yoursecretkey", algorithm="HS256")
+    return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict:
+    """
+    Decode the access token.
+        Parameters:
+            token (str): The token to decode.
+        Returns:
+            dict: The decoded token.
+    """
+    return jwt.decode(token, "yoursecretkey", algorithms=["HS256"])
+
+
+async def get_current_user(request: Request) -> User:
     user = request.session.get("user")
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="User not authenticated.")
-    async with AsyncSession(engine) as session:
-        result = await session.execute(select(User).where(User.email == user["email"]))
-        db_user = result.scalars().first()
-        if db_user:
-            if db_user.email_verified is None or not db_user.email_verified:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail="Email not verified.")
-            if not db_user.is_active:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail="Account is deactivated.")
-            user["id"] = str(db_user.id)
-            user["is_admin"] = db_user.is_admin
-    request.session["user"] = user
-    return User(**user)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated.")
 
+
+    if isinstance(user, str):
+        current_user = decode_access_token(user)
+    else:
+        current_user = user
+
+    async with AsyncSession(engine) as session:
+        result = await session.execute(select(User).where(User.email == current_user["email"]))
+        db_user = result.scalars().first()
+        if not db_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        if db_user.email_verified is None or not db_user.email_verified:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email not verified.")
+        if not db_user.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is deactivated.")
+
+        current_user["id"] = str(db_user.id)
+        current_user["is_admin"] = db_user.is_admin
+
+        # Log the final user data being returned
+        logger.debug(f"Final current user: {current_user}")
+
+    return User(**current_user)
 
 def generate_verification_token(email: str) -> str:
     """
