@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import User
 from app.services.common.utils import get_current_user, process_request
 from app.sql_app.database import get_db
-from app.services.crud.card import create_card, read_card, update_card, delete_card
+from app.services.crud.card import create_card, read_all_cards, read_card, update_card, delete_card
 from app.sql_app.models.models import Card
 from uuid import UUID
 
@@ -44,6 +44,22 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
         return await read_card(db, card_id, current_user.id)
 
     return await process_request(_read_card)
+
+
+@router.get("/cards")
+async def read_all(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    View all cards for the user.
+        Parameters:
+            db (AsyncSession): The database session.
+            current_user (User): The current user.
+        Returns:
+            List[Card]: A list of card objects belonging to the user.
+    """
+    async def _read_all_cards():
+        return await read_all_cards(db, current_user.id)
+
+    return await process_request(_read_all_cards)
 
 
 @router.put("/cards/{card_id}")

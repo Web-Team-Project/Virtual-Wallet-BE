@@ -58,7 +58,7 @@ async def protected_route(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/logout")
-async def logout_route(request: Request):
+async def logout_route():
     """
     Logout the user. Redirects to the home page.
         Parameters:
@@ -67,6 +67,6 @@ async def logout_route(request: Request):
             RedirectResponse: The redirect response to the home page.
     """
     async def _logout():
-        return await logout(request)
+        return await logout()
     
     return await process_request(_logout)

@@ -9,14 +9,14 @@ from uuid import UUID
 
 class UserBase(BaseModel):
     id: UUID
-    sub: str
-    name: str
-    given_name: str
-    family_name: str
-    picture: str
+    sub: Optional[str] = None
+    name: Optional[str] = None
+    given_name: Optional[str] = None
+    family_name: Optional[str] = None
+    picture: Optional[str] = None
     email: str
     email_verified: bool
-    locale: str
+    locale: Optional[str] = None
     phone_number: Optional[str] = None
     is_active: Optional[bool] = True
     is_blocked: Optional[bool] = False
@@ -38,7 +38,7 @@ class User(UserBase):
 
 
 class AddPhoneRequest(BaseModel):
-    phone_number: str = Field(..., min_length=13, max_length=13, pattern=r"^(\+359|0)\d{8,9}$",)
+    phone_number: str = Field(..., min_length=13, max_length=13)
 
 
 class VerifyPhoneRequest(BaseModel):

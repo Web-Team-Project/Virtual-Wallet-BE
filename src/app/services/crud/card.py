@@ -52,6 +52,19 @@ async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
     return db_card
 
 
+async def read_all_cards(db: AsyncSession, user_id: UUID):
+    """
+    Retrieve all cards belonging to a user.
+        Parameters:
+            db (AsyncSession): The database session.
+            user_id (UUID): The ID of the user.
+        Returns:
+            List[Card]: A list of card objects belonging to the user.
+    """
+    result = await db.execute(select(Card).where(Card.user_id == user_id))
+    return result.scalars().all()
+
+
 async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id: UUID):
     """
     Update card's details by id.

@@ -2,13 +2,13 @@ from fastapi import HTTPException, status
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
-from starlette.responses import RedirectResponse, JSONResponse
+from starlette.responses import RedirectResponse
+
 from app.core.config import get_settings
+from app.services.common.utils import create_access_token
 from app.services.crud.user import create_user
 
-
 settings = get_settings()
-
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl="https://accounts.google.com/o/oauth2/v2/auth",
@@ -40,7 +40,7 @@ async def auth_callback(request: Request):
     """
     code = request.query_params.get("code")
     if not code:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Authorization code not found.")
 
     token_url = "https://oauth2.googleapis.com/token"
@@ -56,7 +56,7 @@ async def auth_callback(request: Request):
         token_json = token_response.json()
 
     if "error" in token_json:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=token_json["error"])
 
     access_token = token_json["access_token"]
@@ -67,22 +67,21 @@ async def auth_callback(request: Request):
         userinfo = userinfo_response.json()
 
     if "error" in userinfo:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=userinfo["error"])
 
     await create_user(userinfo)
 
-    request.session["user"] = userinfo
-    return RedirectResponse("http://localhost:3000/home")
+    jwt_token = create_access_token(data=userinfo)
+    response = RedirectResponse("http://localhost:8000/swagger")
+    response.set_cookie(key="user", value=jwt_token, max_age=1800)
+    return response
 
 
-async def logout(request: Request):
+async def logout():
     """
-    Log out the user by removing the session.
-        Parameters:
-            request (Request): The request object.
-        Returns:
-            JSONResponse: A JSON response with the message that the user is logged out.
+    Logout the user.
     """
-    request.session.pop("user", None)
-    return JSONResponse({"message": "Successfully logged out."})
+    response = RedirectResponse("http://localhost:8000/swagger")
+    response.delete_cookie("user")
+    return response

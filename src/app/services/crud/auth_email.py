@@ -1,12 +1,15 @@
+from functools import lru_cache
+from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, Request, status
 from passlib.context import CryptContext
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import JSONResponse
 from app.schemas.email_user import EmailUserCreate, LoginRequest
-from app.services.common.utils import generate_verification_token
-from app.services.crud.user import get_user_by_email
+from app.schemas.user import UserBase
+from app.services.common.utils import generate_verification_token, create_access_token
 from app.services.common.verification import send_verification_email
+from app.services.crud.user import get_user_by_email
 from app.sql_app.models.models import User
 
 
@@ -26,7 +29,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     """
     user = await get_user_by_email(email, db)
     if not user or not pwd_context.verify(password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, 
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Incorrect email or password.")
     if not user.email_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,6 +67,7 @@ async def register_with_email(email: str, hashed_password: str, db: AsyncSession
     }
 
 
+@lru_cache()
 async def verify_email(token: str, db: AsyncSession):
     """
     Verify the email of the user using the token sent to the user's email.
@@ -77,20 +81,20 @@ async def verify_email(token: str, db: AsyncSession):
     try:
         email = serializer.loads(token, salt="email-verification-salt")
     except SignatureExpired:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Verification link expired.")
     except BadSignature:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid verification link.")
     user = await get_user_by_email(email, db)
     if not user or user.verification_token != token:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid verification token.")
     user.email_verified = True
     user.verification_token = None
     await db.commit()
     await db.refresh(user)
-    
+
     return {"message": "Email verified successfully"}
 
 
@@ -108,11 +112,10 @@ async def create_new_user(user: EmailUserCreate, db: AsyncSession):
     return db_user
 
 
-async def login(request: Request, login_request: LoginRequest, db: AsyncSession):
+async def login(login_request: LoginRequest, db: AsyncSession):
     """
     User login with email and password. It creates a session for the user.
         Parameters:
-            request (Request): The request object.
             login_request (LoginRequest): The login request.
             db (AsyncSession): The database session.
         Returns:
@@ -129,6 +132,17 @@ async def login(request: Request, login_request: LoginRequest, db: AsyncSession)
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email not verified. Please verify your email."
         )
+    current_user = _map_user(user)
+    jwt_token = create_access_token(data=current_user)
+    response = JSONResponse({"message": "Logged!"})
+    response.set_cookie(key="user", value=jwt_token, max_age=1800)
+    return response
 
-    request.session["user"] = {"id": str(user.id), "email": user.email}
-    return request.session["user"]
+
+def _map_user(user):
+    pd_user = UserBase(**user.__dict__)
+    modify_user = pd_user.model_dump()
+    modify_user["id"] = str(user.id)
+    modify_user["sub"] = str(user.id)
+
+    return modify_user
