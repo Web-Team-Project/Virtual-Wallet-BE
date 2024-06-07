@@ -11,7 +11,7 @@ from app.sql_app.database import get_db
 router = APIRouter()
 
 
-@router.post("/recurring_transaction")
+@router.post("/recurring_transactions")
 async def create_recurring_transaction_endpoint(recurring_transaction: RecurringTransactionCreate,
                                                 db: AsyncSession = Depends(get_db),
                                                 current_user: User = Depends(get_current_user)):
@@ -31,7 +31,7 @@ async def create_recurring_transaction_endpoint(recurring_transaction: Recurring
     return await process_request(_create_recurring_transaction)
 
 
-@router.get("/recurring_transaction")
+@router.get("/recurring_transactions")
 async def get_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db),
                                               current_user: User = Depends(get_current_user)):
     """
@@ -48,7 +48,7 @@ async def get_recurring_transactions_endpoint(db: AsyncSession = Depends(get_db)
     return await process_request(_get_recurring_transactions)
 
 
-@router.delete("/recurring_transaction/cancel")
+@router.delete("/recurring_transactions/cancel")
 async def cancel_recurring_transaction_endpoint(recurring_transaction_id: UUID, 
                                                 db: AsyncSession = Depends(get_db),
                                                 current_user: User = Depends(get_current_user)):

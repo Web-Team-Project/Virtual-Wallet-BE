@@ -3,10 +3,10 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
-
 from app.core.config import get_settings
 from app.services.common.utils import create_access_token
 from app.services.crud.user import create_user
+
 
 settings = get_settings()
 
@@ -80,7 +80,7 @@ async def auth_callback(request: Request):
 
 async def logout():
     """
-    Logout the user.
+    Logout the user. Delete the user cookie.
     """
     response = RedirectResponse("http://localhost:8000/swagger")
     response.delete_cookie("user")

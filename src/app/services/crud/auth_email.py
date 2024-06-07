@@ -67,7 +67,6 @@ async def register_with_email(email: str, hashed_password: str, db: AsyncSession
     }
 
 
-@lru_cache()
 async def verify_email(token: str, db: AsyncSession):
     """
     Verify the email of the user using the token sent to the user's email.
@@ -94,7 +93,6 @@ async def verify_email(token: str, db: AsyncSession):
     user.verification_token = None
     await db.commit()
     await db.refresh(user)
-
     return {"message": "Email verified successfully"}
 
 
@@ -134,7 +132,7 @@ async def login(login_request: LoginRequest, db: AsyncSession):
         )
     current_user = _map_user(user)
     jwt_token = create_access_token(data=current_user)
-    response = JSONResponse({"message": "Logged!"})
+    response = JSONResponse({"message": "Successfully logged in."})
     response.set_cookie(key="user", value=jwt_token, max_age=1800)
     return response
 
@@ -144,5 +142,4 @@ def _map_user(user):
     modify_user = pd_user.model_dump()
     modify_user["id"] = str(user.id)
     modify_user["sub"] = str(user.id)
-
     return modify_user

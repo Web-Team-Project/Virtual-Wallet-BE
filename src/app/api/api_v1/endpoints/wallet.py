@@ -10,7 +10,7 @@ from app.schemas.user import User
 router = APIRouter()
 
 
-@router.post("/wallet/")
+@router.post("/wallets")
 async def create_wallet_endpoint(wallet_create: WalletBase, db: AsyncSession = Depends(get_db),
                                  current_user: User = Depends(get_current_user)):
     """

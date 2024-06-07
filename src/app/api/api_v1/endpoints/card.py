@@ -54,7 +54,7 @@ async def read_all(db: AsyncSession = Depends(get_db), current_user: User = Depe
             db (AsyncSession): The database session.
             current_user (User): The current user.
         Returns:
-            List[Card]: A list of card objects belonging to the user.
+            List[Card]: The list of card objects belonging to the user.
     """
     async def _read_all_cards():
         return await read_all_cards(db, current_user.id)

@@ -38,7 +38,7 @@ async def view_transactions(filter: TransactionFilter = Depends(),
     return await process_request(_get_transactions)
 
 
-@router.post("/transaction")
+@router.post("/transactions")
 async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncSession = Depends(get_db),
                                       current_user: User = Depends(get_current_user)):
     """
@@ -75,7 +75,7 @@ async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
     return await process_request(_confirm_transaction)
 
 
-@router.post("/transaction/{transaction_id}/approve")
+@router.post("/transactions/{transaction_id}/approve")
 async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db),
                               current_user: User = Depends(get_current_user)):
     """
@@ -94,7 +94,7 @@ async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
     return await process_request(_approve_transaction)
 
 
-@router.post("/transaction/{transaction_id}/reject")
+@router.post("/transactions/{transaction_id}/reject")
 async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Reject a transaction for the user. 
@@ -112,7 +112,7 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
     return await process_request(_reject_transaction)
 
 
-@router.put("/transaction/{transaction_id}/deny")
+@router.put("/transactions/{transaction_id}/deny")
 async def deny_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Deny a transaction for the user. 

@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Callable, Any
-
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from itsdangerous import URLSafeTimedSerializer
@@ -9,10 +8,10 @@ from jose import jwt
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
 from app.sql_app.database import engine
 from app.sql_app.models.models import User
 from .custom_response import WebErrorResponse
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +25,8 @@ def create_access_token(data: dict) -> str:
             str: The encoded token.
     """
     to_encode = data.copy()
-    if 'sub' in to_encode and not isinstance(to_encode['sub'], str):
-        to_encode['sub'] = str(to_encode['sub'])
+    if "sub" in to_encode and not isinstance(to_encode["sub"], str):
+        to_encode["sub"] = str(to_encode["sub"])
     expire = datetime.utcnow() + timedelta(minutes=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, "yoursecretkey", algorithm="HS256")
