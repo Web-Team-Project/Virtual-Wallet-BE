@@ -64,6 +64,8 @@ ignore = ["E203", "E127", "E128", "W291", "F821", "F811", "W503", "C417"]
 per-file-ignores = [
     "tests/:T20",
     "integration_tests/:T20",
+    "tests/:T20",
+    "integration_tests/:T20",
     "cli.py:T20"
 ]
 
