@@ -2,11 +2,12 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login
+from app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login, \
+    _map_user
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.sql_app.models.models import User
 from itsdangerous import SignatureExpired, BadSignature
-
+from uuid import UUID, uuid4
 
 @pytest.fixture
 def db():
@@ -192,11 +193,14 @@ async def test_login_with_valid_credentials(db, mock_user):
     request = MagicMock()
     request.session = {}
 
-    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
-        result = await login(request, login_request, db)
+    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)), \
+         patch("app.services.crud.auth_email.create_access_token", new=MagicMock(return_value="dummy_token")), \
+         patch("app.services.crud.auth_email._map_user", new=MagicMock(return_value={"email": "user@example.com", "sub": "user_id"})):
+        result = await login(login_request, db)
 
-    assert request.session["user"]["email"] == login_request.email
-    assert result["email"] == login_request.email
+    assert result.body.decode() == '{"message":"Successfully logged in."}'
+    assert result.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_login_with_invalid_credentials(db):
@@ -205,12 +209,9 @@ async def test_login_with_invalid_credentials(db):
 
     with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=None)):
         with pytest.raises(HTTPException) as excinfo:
-            await login(request, login_request, db)
+            await login(login_request, db)
 
     assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-
 
 
 @pytest.mark.asyncio
@@ -241,7 +242,28 @@ async def test_login_with_unverified_email(db, mock_user):
 
     with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
         with pytest.raises(HTTPException) as excinfo:
-            await login(request, login_request, db)
+            await login(login_request, db)
 
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Email not verified. Please verify your email."
+
+
+def test_map_user():
+    user_id = uuid4()
+    user = User(id=user_id, email="user@example.com", hashed_password="hashed_password", email_verified=True)
+    mapped_user = _map_user(user)
+
+    assert mapped_user["id"] == str(user.id)
+    assert mapped_user["email"] == user.email
+    assert mapped_user["sub"] == str(user.id)
+    assert "hashed_password" not in mapped_user
+    assert mapped_user["email_verified"] == user.email_verified
+    assert "is_active" in mapped_user
+    assert "is_admin" in mapped_user
+    assert "is_blocked" in mapped_user
+    assert "family_name" in mapped_user
+    assert "given_name" in mapped_user
+    assert "locale" in mapped_user
+    assert "name" in mapped_user
+    assert "phone_number" in mapped_user
+    assert "picture" in mapped_user
