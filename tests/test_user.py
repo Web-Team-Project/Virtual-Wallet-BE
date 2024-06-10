@@ -42,7 +42,7 @@ def mock_user():
 @pytest.mark.asyncio
 async def test_user_info(db, mock_user):
     user_base = UserBase(
-        id=str(mock_user.id),  # Ensure id is a string if UserBase expects a string
+        id=str(mock_user.id),
         email=mock_user.email,
         name=mock_user.name,
         given_name=mock_user.given_name,
@@ -85,7 +85,7 @@ async def test_user_info(db, mock_user):
 @pytest.mark.asyncio
 async def test_user_info_no_data(db, mock_user):
     user_base = UserBase(
-        id=str(mock_user.id),  # Ensure id is a string if UserBase expects a string
+        id=str(mock_user.id),
         email=mock_user.email,
         name=mock_user.name,
         given_name=mock_user.given_name,
@@ -275,16 +275,13 @@ async def test_block_user_not_authorized(db, mock_user):
 
 @pytest.mark.asyncio
 async def test_block_user_not_found(db, mock_user):
-    # Mock query result with no user
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     db.execute.return_value = mock_result
 
-    # Call the function and check for the exception
     with pytest.raises(HTTPException) as exc_info:
         await block_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
 
-    # Assert the exception details
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
 
@@ -294,15 +291,12 @@ async def test_block_user_success(db, mock_user):
     user_to_block.id = UUID("123e4567-e89b-12d3-a456-426614174001")
     user_to_block.is_blocked = False
 
-    # Mock the result of the database query
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = user_to_block
     db.execute.return_value = mock_result
 
-    # Call the function
     result = await block_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
 
-    # Assert the result
     assert result == {"message": "User blocked successfully."}
     assert user_to_block.is_blocked == True
     db.commit.assert_called_once()
@@ -322,16 +316,13 @@ async def test_unblock_user_not_authorized(db, mock_user):
 
 @pytest.mark.asyncio
 async def test_unblock_user_not_found(db, mock_user):
-    # Mock query result with no user
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     db.execute.return_value = mock_result
 
-    # Call the function and check for the exception
     with pytest.raises(HTTPException) as exc_info:
         await unblock_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
 
-    # Assert the exception details
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
 
@@ -341,15 +332,12 @@ async def test_unblock_user_success(db, mock_user):
     user_to_unblock.id = UUID("123e4567-e89b-12d3-a456-426614174001")
     user_to_unblock.is_blocked = True
 
-    # Mock the result of the database query
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = user_to_unblock
     db.execute.return_value = mock_result
 
-    # Call the function
     result = await unblock_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
 
-    # Assert the result
     assert result == {"message": "User unblocked successfully."}
     assert user_to_unblock.is_blocked == False
     db.commit.assert_called_once()
