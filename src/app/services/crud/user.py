@@ -47,7 +47,7 @@ async def create_user(userinfo):
                 picture=userinfo["picture"],
                 email=userinfo["email"],
                 email_verified=userinfo["email_verified"],
-                locale=userinfo["locale"],
+                locale=userinfo["locale"] if "locale" in userinfo else None,
                 is_active=True,
                 is_blocked=False,
                 is_admin=False)
