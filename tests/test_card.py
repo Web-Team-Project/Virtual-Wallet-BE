@@ -7,7 +7,7 @@ import pytest
 
 from app.schemas.card import CardCreate
 from app.schemas.user import User
-from app.services.crud.card import create_card, delete_card, read_card, update_card
+from app.services.crud.card import create_card, delete_card, read_card, update_card, read_all_cards
 from app.sql_app.models.models import Card
 
 
@@ -84,6 +84,27 @@ async def test_read_card_not_found():
 
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
     assert excinfo.value.detail == f"Card with id {card_id} not found for user {user_id}."
+
+
+@pytest.mark.asyncio
+async def test_read_all_cards_success():
+    db = MagicMock(spec=AsyncSession)
+    user_id = uuid4()
+    card1 = Card(id=uuid4(), user_id=user_id, number="1234567890123456",
+                 card_holder="Test User 1", exp_date="01/24",
+                 cvv="123", design="Design1")
+    card2 = Card(id=uuid4(), user_id=user_id, number="6543210987654321",
+                 card_holder="Test User 2", exp_date="01/25",
+                 cvv="321", design="Design2")
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [card1, card2]
+    db.execute = AsyncMock(return_value=mock_result)
+
+    result = await read_all_cards(db, user_id)
+
+    assert len(result) == 2
+    assert result[0] == card1
+    assert result[1] == card2
 
 
 @pytest.mark.asyncio
@@ -169,26 +190,6 @@ async def test_update_card_unauthorized():
                                    exp_date="01/24",
                                    cvv="321",
                                    design="Design2")
-
-#     current_user = User(id=current_user_id,
-#                         sub="user_sub",
-#                         name="Test User",
-#                         given_name="Test",
-#                         family_name="User",
-#                         picture="http://example.com/picture.jpg",
-#                         email="testuser@example.com",
-#                         email_verified=True,
-#                         locale="en")
-
-#     mock_result = MagicMock()
-#     mock_result.scalars.return_value.first.return_value = mock_card
-#     db.execute = AsyncMock(return_value=mock_result)
-
-#     with pytest.raises(HTTPException) as excinfo:
-#         await update_card(db, card_id, updated_card_data, current_user)
-
-#     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
-#     assert excinfo.value.detail == "Not authorized to update this card."
 
 
 @pytest.mark.asyncio
