@@ -30,6 +30,7 @@ dependencies = [
     "passlib",
     "python-multipart",
     "bcrypt"
+    "python-jose"
 ]
 
 [project.optional-dependencies]
