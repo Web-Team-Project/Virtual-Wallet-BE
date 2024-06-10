@@ -1,4 +1,3 @@
-from functools import lru_cache
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
