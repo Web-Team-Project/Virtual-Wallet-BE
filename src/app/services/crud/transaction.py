@@ -8,6 +8,7 @@ from uuid import UUID
 import uuid
 from sqlalchemy.orm import selectinload
 
+
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
     """
     Create a transaction to send money from one user's wallet to another user's wallet.
@@ -27,7 +28,8 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Sender is blocked.")
 
-    sender_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency))
+    sender_wallet_result = await db.execute(
+        select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency))
     sender_wallet = sender_wallet_result.scalars().first()
     if not sender_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -36,12 +38,19 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Insufficient funds.")
 
-    card_result = await db.execute(select(Card).where(Card.id == transaction_data.card_id, Card.user_id == sender_id))
+    card_result = await db.execute(
+        select(Card).where(Card.number == transaction_data.card_number, Card.user_id == sender_id))
     card = card_result.scalars().first()
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found.")
 
-    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction_data.recipient_id))
+    recipient_result = await db.execute(select(User).where(User.email == transaction_data.recipient_email))
+    recipient = recipient_result.scalars().first()
+    if not recipient:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Recipient not found.")
+
+    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == recipient.id))
     recipient_wallet = recipient_wallet_result.scalars().first()
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -55,9 +64,9 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
                                   amount=transaction_data.amount,
                                   currency=transaction_data.currency,
                                   timestamp=transaction_data.timestamp,
-                                  card_id=transaction_data.card_id,
+                                  card_id=card.id,
                                   sender_id=sender_id,
-                                  recipient_id=transaction_data.recipient_id,
+                                  recipient_id=recipient.id,
                                   category_id=transaction_data.category_id,
                                   wallet_id=sender_wallet.id,
                                   status="pending")

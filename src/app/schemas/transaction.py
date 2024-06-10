@@ -17,12 +17,15 @@ class TransactionBase(BaseModel):
 
 
 class TransactionCreate(BaseModel):
-    amount: int
-    currency: str 
-    card_id: UUID
-    recipient_id: UUID
+    amount: float
+    currency: str
+    timestamp: datetime
+    card_number: str
+    recipient_email: str
     category_id: UUID
-    timestamp: datetime 
+
+    class Config:
+        from_attributes = True
 
 class Transaction(TransactionBase):
     id: UUID
