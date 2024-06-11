@@ -53,6 +53,7 @@ class TransactionView(BaseModel):
     status: str
     card_number: str
     recipient_email: str
+    category_name: str
     class Config:
         from_attributes = True
 

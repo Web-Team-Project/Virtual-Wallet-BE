@@ -206,7 +206,8 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
             category_id=transaction.category_id,
             status=transaction.status.name,
             card_number=transaction.card.number,
-            recipient_email=transaction.recipient.email
+            recipient_email=transaction.recipient.email,
+            category_name=transaction.category.name
         )
         transactions_data.append(transaction_view)
 
