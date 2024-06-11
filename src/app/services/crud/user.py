@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import or_, update
+from sqlalchemy import func, or_, update
 from sqlalchemy.future import select
 from app.core.config import get_settings
 from app.schemas.user import UserBase
@@ -224,16 +224,17 @@ async def search_users(db: AsyncSession, skip: int, limit: int, current_user: Us
             current_user (User): The current user.
             search (str): The search query.
         Returns:
-            list: A list of users with their details.
+            dict: A dictionary containing a list of users with their details and the total count of users.
     """
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="You are not authorized to perform this action.")
-    if search is None:
-        result = await db.execute(select(User).offset(skip).limit(limit))
-    else:
-        result = await db.execute(select(User)
-                                  .where(or_(User.email.contains(search), User.phone_number.contains(search)))
-                                  .offset(skip).limit(limit))
+    query = select(User)
+    if search:
+        query = query.where(or_(User.email.contains(search), User.phone_number.contains(search)))
+
+    total_users = await db.execute(select(func.count()).select_from(query.subquery()))
+    result = await db.execute(query.offset(skip).limit(limit))
+    
     users = result.scalars().all()
-    return users
+    return {"users": users, "total": total_users.scalar()}
