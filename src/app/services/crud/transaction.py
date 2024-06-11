@@ -64,10 +64,10 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
                                   amount=transaction_data.amount,
                                   currency=transaction_data.currency,
                                   timestamp=transaction_data.timestamp,
-                                  card_id=card.id,
+                                  card_id=transaction_data.card_number,
                                   sender_id=sender_id,
-                                  recipient_id=recipient.id,
-                                  category_id=transaction_data.category_id,
+                                  recipient_id=transaction_data.recipient_email,
+                                  category_id=transaction_data.category,
                                   wallet_id=sender_wallet.id,
                                   status="pending")
     db.add(new_transaction)

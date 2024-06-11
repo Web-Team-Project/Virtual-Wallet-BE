@@ -29,7 +29,7 @@ dependencies = [
     "pydantic[email]",
     "passlib",
     "python-multipart",
-    "bcrypt"
+    "bcrypt",
     "python-jose"
 ]
 

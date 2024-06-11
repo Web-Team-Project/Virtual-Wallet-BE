@@ -22,7 +22,7 @@ class TransactionCreate(BaseModel):
     timestamp: datetime
     card_number: str
     recipient_email: str
-    category_id: UUID
+    category: str
 
     class Config:
         from_attributes = True
