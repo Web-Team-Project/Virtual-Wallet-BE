@@ -1,8 +1,9 @@
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionList, TransactionView
-from app.sql_app.models.models import Transaction, Wallet, User, Card
+from app.sql_app.models.models import Category, Transaction, Wallet, User, Card
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 import uuid
@@ -19,6 +20,13 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         Returns:
             Transaction: The created transaction object.
     """
+    # class TransactionCreate(BaseModel):
+    # amount: float
+    # currency: str
+    # timestamp: datetime
+    # card_number: str
+    # recipient_email: str
+    # category: str
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -49,6 +57,12 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     if not recipient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Recipient not found.")
+    
+    category_result = await db.execute(select(Category).where(Category.name == transaction_data.category))
+    category = category_result.scalars().first()
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Category not found.")
 
     recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == recipient.id))
     recipient_wallet = recipient_wallet_result.scalars().first()
@@ -60,20 +74,27 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Sender's and recipient's wallets must be in the same currency.")
 
+    date_time = datetime.now()
     new_transaction = Transaction(id=uuid.uuid4(),
                                   amount=transaction_data.amount,
                                   currency=transaction_data.currency,
-                                  timestamp=transaction_data.timestamp,
-                                  card_id=transaction_data.card_number,
+                                  timestamp=date_time,
+                                  card_id=card.id,
                                   sender_id=sender_id,
-                                  recipient_id=transaction_data.recipient_email,
-                                  category_id=transaction_data.category,
+                                  recipient_id=recipient.id,
+                                  category_id=category.id,
                                   wallet_id=sender_wallet.id,
                                   status="pending")
     db.add(new_transaction)
     await db.commit()
     await db.refresh(new_transaction)
-    return new_transaction
+    transaction_result = TransactionCreate(amount=transaction_data.amount,
+                                  currency=transaction_data.currency,
+                                  timestamp=date_time,
+                                  card_number=card.number,
+                                  recipient_email=recipient.email,
+                                  category=category.name,)
+    return transaction_result
 
 
 async def confirm_transaction(transaction_id: UUID, db: AsyncSession, current_user_id: str) -> Transaction:

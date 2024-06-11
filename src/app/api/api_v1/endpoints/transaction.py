@@ -51,7 +51,7 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
         Returns:
             Transaction: The created transaction object.
     """
-    async def _create_transaction() -> Transaction:
+    async def _create_transaction() -> TransactionCreate:
         return await create_transaction(db, transaction, current_user.id)
 
     return await process_request(_create_transaction)
