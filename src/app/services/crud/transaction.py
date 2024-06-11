@@ -7,7 +7,8 @@ from app.sql_app.models.models import Category, Transaction, Wallet, User, Card
 from app.sql_app.models.enumerate import Status
 from uuid import UUID
 import uuid
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select
 
 
 async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate, sender_id: UUID) -> Transaction:
@@ -20,13 +21,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         Returns:
             Transaction: The created transaction object.
     """
-    # class TransactionCreate(BaseModel):
-    # amount: float
-    # currency: str
-    # timestamp: datetime
-    # card_number: str
-    # recipient_email: str
-    # category: str
+
     sender_result = await db.execute(select(User).where(User.id == sender_id))
     sender = sender_result.scalars().first()
     if not sender:
@@ -160,7 +155,11 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
        Returns:
            TransactionList: A list of transactions matching the filters and pagination parameters, along with the total count.
        """
-    query = select(Transaction).options(selectinload(Transaction.card), selectinload(Transaction.category))
+    query = select(Transaction).options(
+        joinedload(Transaction.card),
+        joinedload(Transaction.category),
+        joinedload(Transaction.recipient)
+    )
 
     if not current_user.is_admin:
         query = query.where(
@@ -194,9 +193,26 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
     transactions_result = await db.execute(query.offset(skip).limit(limit))
     transactions = transactions_result.scalars().all()
 
-    transactions_data = [TransactionView.from_orm(transaction) for transaction in transactions]
+    transactions_data = []
+    for transaction in transactions:
+        transaction_view = TransactionView(
+            id=transaction.id,
+            amount=transaction.amount,
+            currency=transaction.currency.name,
+            timestamp=transaction.timestamp,
+            card_id=transaction.card_id,
+            sender_id=transaction.sender_id,
+            recipient_id=transaction.recipient_id,
+            category_id=transaction.category_id,
+            status=transaction.status.name,
+            card_number=transaction.card.number,
+            recipient_email=transaction.recipient.email
+        )
+        transactions_data.append(transaction_view)
 
     return TransactionList(transactions=transactions_data, total=total)
+
+
 
 
 async def approve_transaction(db: AsyncSession, transaction_id: UUID, current_user_id: str) -> Transaction:

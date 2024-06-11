@@ -51,6 +51,8 @@ class TransactionView(BaseModel):
     recipient_id: UUID
     category_id: UUID
     status: str
+    card_number: str
+    recipient_email: str
     class Config:
         from_attributes = True
 
