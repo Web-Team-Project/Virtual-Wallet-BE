@@ -15,11 +15,12 @@ class TransactionBase(BaseModel):
     category_id: UUID
     status: str
 
+    
 
 class TransactionCreate(BaseModel):
     amount: float
     currency: str
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
     card_number: str
     recipient_email: str
     category: str
