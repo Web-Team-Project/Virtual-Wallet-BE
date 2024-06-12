@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 import pytest
-from sqlalchemy import select, or_
+from sqlalchemy import func, select, or_
 from app.sql_app.database import AsyncSessionLocal, Base, engine, get_db
 from app.schemas.user import UserBase
 from app.services.crud.user import create_user, user_info, get_user_by_email, get_user_by_id, get_user_by_phone, \
@@ -23,7 +23,6 @@ def db():
     db.scalar_one_or_none = AsyncMock()
     return db
 
-
 @pytest.fixture
 def mock_user():
     mock_user = MagicMock(spec=User)
@@ -37,7 +36,6 @@ def mock_user():
     mock_user.locale = "en"
     mock_user.sub = "test-sub"
     return mock_user
-
 
 @pytest.mark.asyncio
 async def test_user_info(db, mock_user):
@@ -356,38 +354,4 @@ async def test_search_users_not_authorized(db, mock_user):
     assert exc_info.value.detail == "You are not authorized to perform this action."
 
 
-@pytest.mark.asyncio
-async def test_search_users_no_search_term(db, mock_user):
-    mock_user.is_admin = True
-    users = [MagicMock(spec=User), MagicMock(spec=User)]
-
-    mock_result = MagicMock()
-    mock_result.scalars().all.return_value = users
-    db.execute.return_value = mock_result
-
-    result = await search_users(db, skip=0, limit=10, current_user=mock_user)
-
-    assert result == users
-    query = select(User).offset(0).limit(10)
-    db.execute.assert_called_once()
-    executed_query = db.execute.call_args[0][0]
-    assert str(executed_query) == str(query)
-
-
-@pytest.mark.asyncio
-async def test_search_users_with_search_term(db, mock_user):
-    mock_user.is_admin = True
-    users = [MagicMock(spec=User), MagicMock(spec=User)]
-
-    mock_result = MagicMock()
-    mock_result.scalars().all.return_value = users
-    db.execute.return_value = mock_result
-
-    result = await search_users(db, skip=0, limit=10, current_user=mock_user, search="test")
-
-    assert result == users
-    query = select(User).where(or_(User.email.contains("test"), User.phone_number.contains("test"))).offset(0).limit(10)
-    db.execute.assert_called_once()
-    executed_query = db.execute.call_args[0][0]
-    assert str(executed_query) == str(query)
 

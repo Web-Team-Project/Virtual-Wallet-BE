@@ -173,8 +173,15 @@ async def test_verify_email_with_no_user(db):
 
 
 @pytest.mark.asyncio
-async def test_create_new_user(db):
-    user_data = EmailUserCreate(email="user@example.com", hashed_password="password")
+async def test_create_new_user():
+    db = AsyncMock()
+
+    user_data = EmailUserCreate(
+        email="user@example.com",
+        hashed_password="password",
+        given_name="John",
+        family_name="Doe"
+    )
 
     mock_user = {"email": user_data.email}
     with patch("app.services.crud.auth_email.register_with_email", new=AsyncMock(return_value=mock_user)):
