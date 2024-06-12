@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.transaction import RecurringTransactionCreate, TransactionCreate
 from app.services.crud.transaction import create_transaction
 from app.sql_app.models.enumerate import IntervalType
-from app.sql_app.models.models import  RecurringTransaction, Transaction, Card, User, Wallet
+from app.sql_app.models.models import  RecurringTransaction, Transaction, Card, User, Wallet, Category
 from uuid import UUID
 import uuid
 import pytz
@@ -46,7 +46,7 @@ async def create_recurring_transaction(db: AsyncSession, transaction_data: Recur
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found.")
 
-    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction_data.recipient_id))
+    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == transaction_data.recipient_id, Wallet.currency == transaction_data.currency))
     recipient_wallet = recipient_wallet_result.scalars().first()
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -82,12 +82,21 @@ async def process_recurring_transactions(db: AsyncSession):
     result = await db.execute(select(RecurringTransaction).where(and_(RecurringTransaction.next_execution_date <= current_time)))
     due_recurring_transactions = result.scalars().all()
     for recurring_transaction in due_recurring_transactions:
+
+        card_result = await db.execute(select(Card).where(Card.id == recurring_transaction.card_id))
+        card = card_result.scalars().first()
+        recipient_result = await db.execute(select(User).where(User.id == recurring_transaction.recipient_id))
+        recipient = recipient_result.scalars().first()
+        category_result = await db.execute(select(Category).where(Category.id == recurring_transaction.category_id))
+        category = category_result.scalars().first()
+
         transaction_data = TransactionCreate(amount=recurring_transaction.amount,
+                                             currency=recurring_transaction.currency,
                                              timestamp=datetime.now(pytz.utc),
-                                             card_id=recurring_transaction.card_id,
-                                             recipient_id=recurring_transaction.recipient_id,
-                                             category_id=recurring_transaction.category_id,
-                                             currency=recurring_transaction.currency)
+                                             card_number=card.number,
+                                             recipient_email=recipient.email,
+                                             category=category.name
+        )
         try:
             await create_transaction(db, transaction_data, recurring_transaction.user_id)
             if recurring_transaction.interval_type == IntervalType.DAILY:
@@ -98,7 +107,6 @@ async def process_recurring_transactions(db: AsyncSession):
                 next_month = recurring_transaction.next_execution_date.month % 12 + 1
                 next_year = recurring_transaction.next_execution_date.year + \
                             (recurring_transaction.next_execution_date.month // 12)
-
                 last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
                 day = min(recurring_transaction.next_execution_date.day, last_day_of_next_month)
                 recurring_transaction.next_execution_date = recurring_transaction.next_execution_date.replace(

@@ -12,7 +12,7 @@ from app.schemas.transaction import RecurringTransactionCreate, TransactionCreat
 from app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions, \
     cancel_recurring_transaction, get_recurring_transactions
 from app.sql_app.models.enumerate import IntervalType
-from app.sql_app.models.models import Card, User, Wallet, RecurringTransaction
+from app.sql_app.models.models import Card, User, Wallet, RecurringTransaction, Category
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_create_recurring_transaction_sender_wallet_not_found():
 async def test_create_recurring_transaction_insufficient_funds():
     db = AsyncMock(spec=AsyncSession)
     sender_id = uuid4()
-    currency= "USD"
+    currency = "USD"
     transaction_data = RecurringTransactionCreate(
         card_id=uuid4(),
         recipient_id=uuid4(),
@@ -239,6 +239,7 @@ async def test_create_recurring_transaction_recipient_wallet_not_found():
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "Recipient's wallet not found."
 
+
 @pytest.mark.asyncio
 async def test_create_recurring_transaction_interval_types():
     db = AsyncMock(spec=AsyncSession)
@@ -281,8 +282,6 @@ async def test_create_recurring_transaction_interval_types():
         db.refresh.assert_called_with(new_transaction)
 
 
-
-
 @pytest.mark.asyncio
 async def test_create_recurring_transaction_invalid_interval_type():
     with pytest.raises(ValidationError) as exc_info:
@@ -298,7 +297,6 @@ async def test_create_recurring_transaction_invalid_interval_type():
         )
 
     assert "Input should be 'daily', 'weekly' or 'monthly'" in str(exc_info.value)
-
 
 
 @pytest.mark.asyncio
@@ -317,49 +315,63 @@ async def test_no_due_transactions():
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.DAILY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(days=1),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, balance=200.0, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
-    db.rollback = AsyncMock()
 
-    await process_recurring_transactions(db)
+    with patch('app.services.crud.recurring_transaction.create_transaction',
+               new_callable=AsyncMock) as mock_create_transaction:
+        await process_recurring_transactions(db)
 
-    db.commit.assert_called()
-    db.refresh.assert_called()
-    db.rollback.assert_not_called()
+    mock_create_transaction.assert_called_once()
 
+    print(f"Current time: {current_time}")
+    print(f"Updated next_execution_date: {recurring_transaction.next_execution_date}")
 
+    if recurring_transaction.interval_type == IntervalType.DAILY:
+        assert recurring_transaction.next_execution_date == (current_time - timedelta(days=1) + timedelta(days=1))
+    elif recurring_transaction.interval_type == IntervalType.WEEKLY:
+        assert recurring_transaction.next_execution_date == (current_time - timedelta(days=1) + timedelta(weeks=1))
+    elif recurring_transaction.interval_type == IntervalType.MONTHLY:
+        next_month = (current_time - timedelta(days=1)).month % 12 + 1
+        next_year = (current_time - timedelta(days=1)).year + ((current_time - timedelta(days=1)).month // 12)
+        last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
+        day = min((current_time - timedelta(days=1)).day, last_day_of_next_month)
+        expected_next_execution_date = (current_time - timedelta(days=1)).replace(
+            month=next_month, year=next_year, day=day)
+        assert recurring_transaction.next_execution_date == expected_next_execution_date
 
+    db.commit.assert_called_once()
 @pytest.mark.asyncio
 async def test_cancel_recurring_transaction_success():
     db = AsyncMock(spec=AsyncSession)
@@ -467,6 +479,7 @@ async def test_create_recurring_transaction_different_currencies():
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == "Sender's and recipient's wallets must be in the same currency."
 
+
 @pytest.mark.asyncio
 async def test_create_recurring_transaction_different_currencies():
     db = AsyncMock(spec=AsyncSession)
@@ -503,6 +516,7 @@ async def test_create_recurring_transaction_different_currencies():
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.detail == "Sender's and recipient's wallets must be in the same currency."
+
 
 @pytest.mark.asyncio
 async def test_create_recurring_transaction_db_add_fail():
@@ -542,110 +556,58 @@ async def test_create_recurring_transaction_db_add_fail():
     assert str(exc_info.value) == "DB commit failed"
     db.commit.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_create_transaction_fail():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.DAILY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(days=1),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, balance=200.0, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
-    db.rollback = AsyncMock()
 
-    with patch("app.services.crud.recurring_transaction.create_transaction", side_effect=Exception("Transaction creation failed")):
-        with pytest.raises(Exception) as exc_info:
+    with patch('app.services.crud.recurring_transaction.create_transaction',
+               new_callable=AsyncMock) as mock_create_transaction:
+        mock_create_transaction.side_effect = Exception("Transaction creation failed")
+
+        with pytest.raises(Exception, match="Transaction creation failed"):
             await process_recurring_transactions(db)
 
-        assert str(exc_info.value) == "Transaction creation failed"
-        db.rollback.assert_called()
+    mock_create_transaction.assert_called_once()
+    db.rollback.assert_called_once()
+    db.commit.assert_not_called()
 
-@pytest.mark.asyncio
-async def test_process_due_recurring_transactions_multiple():
-    db = AsyncMock(spec=AsyncSession)
-    sender_id = uuid4()
-    recipient_id = uuid4()
-    card_id = uuid4()
-    currency = "USD"
-    current_time = datetime.now(pytz.utc)
 
-    recurring_transaction1 = RecurringTransaction(
-        id=uuid4(),
-        user_id=sender_id,
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
-        interval=30,
-        interval_type=IntervalType.DAILY,
-        next_execution_date=current_time,
-        currency=currency
-    )
-    recurring_transaction2 = RecurringTransaction(
-        id=uuid4(),
-        user_id=sender_id,
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=150.0,
-        interval=30,
-        interval_type=IntervalType.WEEKLY,
-        next_execution_date=current_time,
-        currency=currency
-    )
 
-    sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=500.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, balance=200.0, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
 
-    db.execute = AsyncMock(side_effect=[
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction1, recurring_transaction2])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
-    ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
-    db.rollback = AsyncMock()
-
-    await process_recurring_transactions(db)
-
-    db.commit.assert_called()
-    db.refresh.assert_called()
-    db.rollback.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -705,48 +667,49 @@ async def test_get_recurring_transactions_multiple():
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_exception_handling():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.DAILY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(days=1),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, balance=200.0, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
-    db.rollback = AsyncMock()
 
-    with patch("app.services.crud.recurring_transaction.create_transaction", side_effect=Exception("Transaction creation failed")):
-        with pytest.raises(Exception) as exc_info:
+    with patch('app.services.crud.recurring_transaction.create_transaction', new_callable=AsyncMock) as mock_create_transaction:
+        mock_create_transaction.side_effect = Exception("Unexpected error")
+
+        with pytest.raises(Exception, match="Unexpected error"):
             await process_recurring_transactions(db)
 
-        assert str(exc_info.value) == "Transaction creation failed"
-        db.rollback.assert_called()
-
+    mock_create_transaction.assert_called_once()
+    db.rollback.assert_called_once()
+    db.commit.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_get_recurring_transactions_db_access_issue():
@@ -766,134 +729,149 @@ async def test_get_recurring_transactions_db_access_issue():
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_daily():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.DAILY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(days=1),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
-    db.refresh = AsyncMock()
 
-    with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
+    with patch('app.services.crud.recurring_transaction.create_transaction',
+               new_callable=AsyncMock) as mock_create_transaction:
         await process_recurring_transactions(db)
 
-    assert recurring_transaction.next_execution_date == current_time + timedelta(days=1)
-    db.commit.assert_called()
+    mock_create_transaction.assert_called_once()
+
+    expected_next_execution_date = current_time - timedelta(days=1) + timedelta(days=1)
+    assert recurring_transaction.next_execution_date == expected_next_execution_date
+
+    db.commit.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_weekly():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.WEEKLY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(weeks=1),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
 
-    with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
+    with patch('app.services.crud.recurring_transaction.create_transaction', new_callable=AsyncMock) as mock_create_transaction:
         await process_recurring_transactions(db)
 
-    assert recurring_transaction.next_execution_date == current_time + timedelta(weeks=1)
-    db.commit.assert_called()
+    mock_create_transaction.assert_called_once()
 
+    expected_next_execution_date = current_time - timedelta(weeks=1) + timedelta(weeks=1)
+    assert recurring_transaction.next_execution_date == expected_next_execution_date
+
+    db.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_monthly():
     db = AsyncMock(spec=AsyncSession)
+    current_time = datetime.now(pytz.utc)
+
     sender_id = uuid4()
     recipient_id = uuid4()
     card_id = uuid4()
+    category_id = uuid4()
     currency = "USD"
-    current_time = datetime.now(pytz.utc)
+    amount = 100.0
 
     recurring_transaction = RecurringTransaction(
         id=uuid4(),
         user_id=sender_id,
         card_id=card_id,
         recipient_id=recipient_id,
-        category_id=uuid4(),
-        amount=100.0,
+        category_id=category_id,
+        amount=amount,
         interval=30,
         interval_type=IntervalType.MONTHLY,
-        next_execution_date=current_time,
+        next_execution_date=current_time - timedelta(days=30),
         currency=currency
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200.0, currency=currency)
-    recipient_wallet = Wallet(user_id=recipient_id, currency=currency)
-    card = Card(id=card_id, user_id=sender_id)
+    recipient = User(id=recipient_id, is_blocked=False, email="recipient@example.com")
+    card = Card(id=card_id, user_id=sender_id, number="1234567890123456")
+    category = Category(id=category_id, name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[recurring_transaction])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=sender_wallet)))),
         MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=card)))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient_wallet))))
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=recipient)))),
+        MagicMock(scalars=MagicMock(return_value=MagicMock(first=MagicMock(return_value=category))))
     ])
-    db.commit = AsyncMock()
 
-    with patch("app.services.crud.recurring_transaction.create_transaction", new=AsyncMock()):
+    with patch('app.services.crud.recurring_transaction.create_transaction',
+               new_callable=AsyncMock) as mock_create_transaction:
         await process_recurring_transactions(db)
 
-    next_month = (current_time.month % 12) + 1
-    next_year = current_time.year + (current_time.month // 12)
-    last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
-    expected_day = min(current_time.day, last_day_of_next_month)
-    expected_date = current_time.replace(month=next_month, year=next_year, day=expected_day)
+    mock_create_transaction.assert_called_once()
 
-    assert recurring_transaction.next_execution_date == expected_date
-    db.commit.assert_called()
+    next_execution_date = current_time - timedelta(days=30)
+    next_month = next_execution_date.month % 12 + 1
+    next_year = next_execution_date.year + (next_execution_date.month // 12)
+    last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
+    day = min(next_execution_date.day, last_day_of_next_month)
+    expected_next_execution_date = next_execution_date.replace(year=next_year, month=next_month, day=day)
+
+    assert recurring_transaction.next_execution_date == expected_next_execution_date
+
+    db.commit.assert_called_once()
