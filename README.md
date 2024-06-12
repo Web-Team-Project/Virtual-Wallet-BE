@@ -52,6 +52,9 @@ On the frontend, we've used Next.js, a React framework, to build the application
 A detailed database diagram is included to help you understand the relationships between the tables and the structure of the database.
 ![Database Diagram](https://cdn.discordapp.com/attachments/1227194517879521374/1250387626092007435/image.png?ex=666ac1b9&is=66697039&hm=1ed401639ac196f78d2616a7d25312f8eae73ab1c5f28f75b17007ba22f55b51&)
 
+## Self-assessment
+![Self-assessment](https://cdn.discordapp.com/attachments/1227194517879521374/1250508771525136545/image.png?ex=666b328c&is=6669e10c&hm=4963943ab00499dfb9452662c42c9c2d059cb0bbbe23b3c8df4bab3c35da07de&)
+
 ## Contributors
 
 |       Name            |                   Github Username                 |
