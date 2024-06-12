@@ -14,7 +14,11 @@ from app.services.crud.recurring_transaction import process_recurring_transactio
 
 
 SECRET_KEY = "supersecretkey"
-CORS = ["http://localhost:3000", "https://global-payment-system.onrender.com", "https://virtual-wallet-87bx.onrender.com", "https://terrawallet.eu"]
+CORS = ["http://localhost:3000", 
+        "https://global-payment-system.onrender.com", 
+        "https://virtual-wallet-87bx.onrender.com",
+        "https://terrawallet.vercel.app", 
+        "https://terrawallet.eu"]
 
 def _setup_cors(p_app: FastAPI) -> None:
     """
