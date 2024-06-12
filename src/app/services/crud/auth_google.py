@@ -73,7 +73,7 @@ async def auth_callback(request: Request):
     await create_user(userinfo)
 
     jwt_token = create_access_token(data=userinfo)
-    response = RedirectResponse("http://localhost:3000/home")
+    response = RedirectResponse("https://terrawallet.vercel.app/home")
     response.set_cookie(key="user", value=jwt_token, max_age=1800)
     return response
 
