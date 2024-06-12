@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validate_arguments
 from app.schemas.card import Card
 from app.schemas.category import Category
 from app.schemas.contact import Contact
@@ -8,8 +8,11 @@ from app.schemas.transaction import Transaction
 
 
 class EmailUserBase(BaseModel):
+    given_name: str
+    family_name: str
     email: EmailStr
     hashed_password: str = Field(..., min_length=8)
+
 
 class EmailUserCreate(EmailUserBase):
     pass

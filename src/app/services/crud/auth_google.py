@@ -73,7 +73,7 @@ async def auth_callback(request: Request):
     await create_user(userinfo)
 
     jwt_token = create_access_token(data=userinfo)
-    response = RedirectResponse("http://localhost:3000/home")
+    response = RedirectResponse("http://terrawallet.eu/home")
     response.set_cookie(key="user", value=jwt_token, max_age=1800)
     return response
 
@@ -82,6 +82,6 @@ async def logout():
     """
     Logout the user. Delete the user cookie.
     """
-    response = RedirectResponse("http://localhost:8000/swagger")
+    response = RedirectResponse("https://virtual-wallet-87bx.onrender.com/swagger")
     response.delete_cookie("user")
     return response
