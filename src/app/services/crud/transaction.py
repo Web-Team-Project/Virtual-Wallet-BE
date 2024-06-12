@@ -59,7 +59,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Category not found.")
 
-    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == recipient.id))
+    recipient_wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == recipient.id,  Wallet.currency == transaction_data.currency))
     recipient_wallet = recipient_wallet_result.scalars().first()
     if not recipient_wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

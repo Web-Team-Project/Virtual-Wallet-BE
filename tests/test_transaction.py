@@ -78,7 +78,7 @@ async def test_create_transaction_success():
         sql_string(select(Card).where(Card.number == transaction_data.card_number, Card.user_id == sender_id)),
         sql_string(select(User).where(User.email == transaction_data.recipient_email)),
         sql_string(select(Category).where(Category.name == transaction_data.category)),
-        sql_string(select(Wallet).where(Wallet.user_id == recipient_id))
+        sql_string(select(Wallet).where(Wallet.user_id == recipient_id,Wallet.currency == transaction_data.currency))
     ]
 
     actual_calls = [sql_string(call.args[0]) for call in db.execute.call_args_list]
