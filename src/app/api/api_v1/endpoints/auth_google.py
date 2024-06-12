@@ -3,7 +3,7 @@ from starlette.requests import Request
 from app.services.common.utils import get_current_user, process_request
 from app.sql_app.models.models import User
 from app.services.crud.auth_google import login, auth_callback, logout
-
+import logging
 
 router = APIRouter()
 
@@ -18,9 +18,10 @@ async def login_route():
         Returns:
             RedirectResponse: The redirect response to the Google OAuth2.0 login page.
     """
+    logging.info("Logging in user")
     async def _login():
         return await login()
-    
+    logging.info("User logged in")
     return await process_request(_login)
 
 

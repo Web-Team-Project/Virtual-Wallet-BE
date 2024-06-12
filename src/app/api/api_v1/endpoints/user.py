@@ -7,7 +7,7 @@ from app.services.crud.user import block_user, deactivate_user, get_user_by_emai
 from app.sql_app.database import get_db
 from app.schemas.user import User, AddPhoneRequest, UserBase, VerifyPhoneRequest
 from sqlalchemy.ext.asyncio import AsyncSession
-
+import logging
 
 router = APIRouter()
 
@@ -22,7 +22,9 @@ async def get_user_info(db: AsyncSession = Depends(get_db), current_user: UserBa
         Returns:
             dict: A dictionary with the user details.
     """
+    logging.info("Getting user details")
     user_details = await user_info(db, current_user)
+    logging.info("User details retrieved")
     return user_details
 
 
@@ -36,9 +38,10 @@ async def get_user(email: str, db: AsyncSession = Depends(get_db)):
         Returns:
             User: The user details.
     """
+    logging.info("Getting user by email")
     async def _get_user():
         return await get_user_by_email(email, db)
-    
+    logging.info("User retrieved")
     return await process_request(_get_user)
 
 
@@ -54,9 +57,10 @@ async def add_phone_number(add_phone_request: AddPhoneRequest, db: AsyncSession 
         Returns:
             dict: A message confirming the addition.
     """
+    logging.info("Adding phone number")
     async def _add_phone():
         return await add_phone(phone_number, db, current_user)
-
+    logging.info("Phone number added")
     return await process_request(_add_phone)
 
 
@@ -73,11 +77,12 @@ async def verify_phone_endpoint(verify_phone_request: VerifyPhoneRequest,
         Returns:
             dict: A message confirming the verification.
     """
+    logging.info("Verifying phone number")
     code = verify_phone_request.code
 
     async def _verify_phone():
         return await verify_phone(code, db, current_user)
-
+    logging.info("Phone number verified")
     return await process_request(_verify_phone)
 
 
@@ -92,9 +97,10 @@ async def update_role(user_id: UUID, db: AsyncSession = Depends(get_db), current
         Returns:
             dict: A message confirming the update.
     """
+    logging.info("Updating user role")
     async def _update_user_role():
         return await update_user_role(user_id, db, current_user)
-    
+    logging.info("User role updated")
     return await process_request(_update_user_role)
 
 
@@ -109,9 +115,10 @@ async def deactivate(user_id: UUID, db: AsyncSession = Depends(get_db), current_
         Returns:
             dict: A message confirming the deactivation.
     """
+    logging.info("Deactivating user")
     async def _deactivate_user():
         return await deactivate_user(user_id, db, current_user)
-    
+    logging.info("User deactivated")
     return await process_request(_deactivate_user)
 
 
@@ -126,9 +133,10 @@ async def block(user_id: str, db: AsyncSession = Depends(get_db), current_user: 
         Returns:
             dict: A message confirming the block.
     """
+    logging.info("Blocking user")
     async def _block_user():
         return await block_user(user_id, db, current_user)
-    
+    logging.info("User blocked")
     return await process_request(_block_user)
 
 
@@ -143,9 +151,10 @@ async def unblock(user_id: UUID, db: AsyncSession = Depends(get_db), current_use
         Returns:
             dict: A message confirming the unblock.
     """
+    logging.info("Unblocking user")
     async def _unblock_user():
         return await unblock_user(user_id, db, current_user)
-    
+    logging.info("User unblocked")
     return await process_request(_unblock_user)
 
 
@@ -166,7 +175,8 @@ async def search_all_users(search: str = None,
         Returns:
             list: A list of users with their details.
     """
+    logging.info("Searching users")
     async def _search_users():
         return await search_users(db, skip, limit, current_user, search)
-    
+    logging.info("Users searched")
     return await process_request(_search_users)
