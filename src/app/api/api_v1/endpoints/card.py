@@ -7,7 +7,6 @@ from app.sql_app.database import get_db
 from app.services.crud.card import create_card, read_all_cards, read_card, update_card, delete_card
 from app.sql_app.models.models import Card
 from uuid import UUID
-import logging
 
 router = APIRouter()
 
@@ -23,10 +22,9 @@ async def create(card: CardCreate, db: AsyncSession = Depends(get_db), current_u
         Returns:
             Card: The created card object.
     """
-    logging.info("Creating new card")
     async def _create_card() -> Card:
         return await create_card(db, card, current_user.id)
-    logging.info("Card created")
+
     return await process_request(_create_card)
 
 
@@ -41,10 +39,9 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
         Returns:
             Card: The card object.
     """
-    logging.info("Reading card")
     async def _read_card():
         return await read_card(db, card_id, current_user.id)
-    logging.info("Card read")
+    
     return await process_request(_read_card)
 
 
@@ -58,10 +55,9 @@ async def read_all(db: AsyncSession = Depends(get_db), current_user: User = Depe
         Returns:
             List[Card]: The list of card objects belonging to the user.
     """
-    logging.info("Reading all cards")
     async def _read_all_cards():
         return await read_all_cards(db, current_user.id)
-    logging.info("All cards read")
+
     return await process_request(_read_all_cards)
 
 
@@ -77,10 +73,9 @@ async def update(card_id: UUID, card: CardCreate, db: AsyncSession = Depends(get
         Returns:
             Card: The updated card object.
     """
-    logging.info("Updating card")
     async def _update_card():
         return await update_card(db, card_id, card, current_user.id)
-    logging.info("Card updated")
+
     return await process_request(_update_card)
 
 
@@ -95,8 +90,7 @@ async def delete(card_id: UUID, db: AsyncSession = Depends(get_db), current_user
         Returns:
             Card: The deleted card object.
     """
-    logging.info("Deleting card")
     async def _delete_card():
         return await delete_card(db, card_id, current_user.id)
-    logging.info("Card deleted")
+
     return await process_request(_delete_card)

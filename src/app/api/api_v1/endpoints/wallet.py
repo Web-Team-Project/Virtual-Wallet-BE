@@ -5,7 +5,7 @@ from app.services.common.utils import get_current_user, process_request
 from app.services.crud.wallet import add_funds_to_wallet, check_balance, create_wallet, withdraw_funds_from_wallet
 from app.sql_app.database import get_db
 from app.schemas.user import User
-import logging
+
 
 router = APIRouter()
 
@@ -22,10 +22,9 @@ async def create_wallet_endpoint(wallet_create: WalletBase, db: AsyncSession = D
         Returns:
             Wallet: The created wallet object.
     """
-    logging.info("Creating new wallet")
     async def _create_wallet():
         return await create_wallet(db, current_user.id, wallet_create.currency)
-    logging.info("Wallet created")
+
     return await process_request(_create_wallet)
 
 
@@ -40,10 +39,9 @@ async def add_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db), cu
         Returns:
             Wallet: The updated wallet object.
     """
-    logging.info("Adding funds to wallet")
     async def _add_funds():
         return await add_funds_to_wallet(db, wallet.amount, current_user, wallet.currency)
-    logging.info("Funds added")
+
     return await process_request(_add_funds)
 
 
@@ -59,10 +57,9 @@ async def withdraw_funds(wallet: WalletCreate, db: AsyncSession = Depends(get_db
         Returns:
             Wallet: The updated wallet object.
     """
-    logging.info("Withdrawing funds from wallet")
     async def _withdraw_funds():
         return await withdraw_funds_from_wallet(db, current_user, wallet.amount, wallet.currency)
-    logging.info("Funds withdrawn")
+
     return await process_request(_withdraw_funds)
 
 
@@ -76,8 +73,7 @@ async def get_balance(db: AsyncSession = Depends(get_db), current_user: User = D
         Returns:
             Wallet: The wallet object.
     """
-    logging.info("Getting wallet balance")
     async def _get_balance():
         return await check_balance(db, current_user)
-    logging.info("Wallet balance retrieved")
+
     return await process_request(_get_balance)

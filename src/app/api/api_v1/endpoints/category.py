@@ -5,7 +5,7 @@ from app.services.common.utils import get_current_user, process_request
 from app.sql_app.database import get_db
 from app.services.crud.category import create_category, delete_category, read_categories
 from app.sql_app.models.models import User, Category
-import logging
+
 
 router = APIRouter()
 
@@ -22,10 +22,9 @@ async def create(category: CategoryCreate, db: AsyncSession = Depends(get_db), c
         Returns:
             Category: The created category object.
     """
-    logging.info("Creating new category")
     async def _create_category() -> Category:
         return await create_category(db, category, current_user.id)
-    logging.info("Category created")
+
     return await process_request(_create_category)
 
 
@@ -39,10 +38,9 @@ async def view_categories(db: AsyncSession = Depends(get_db), current_user: User
         Returns:
             List[Category]: The list of categories.
     """
-    logging.info("Getting categories")
     async def _read_categories() -> list[Category]:
         return await read_categories(db, current_user.id)
-    logging.info("Categories retrieved")
+
     return await process_request(_read_categories)
 
 
@@ -58,8 +56,7 @@ async def delete(category_name: str, db: AsyncSession = Depends(get_db), current
         Returns:
             Category: The deleted category object.
     """
-    logging.info("Deleting category")
     async def _delete_category() -> Category:
         return await delete_category(db, category_name, current_user.id)
-    logging.info("Category deleted")
+
     return await process_request(_delete_category)

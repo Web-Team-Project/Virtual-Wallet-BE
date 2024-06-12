@@ -9,10 +9,7 @@ from app.services.common.utils import process_request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.services.common.utils import get_current_user
-import logging
 
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 router = APIRouter()
 
@@ -35,12 +32,9 @@ async def view_transactions(filter: TransactionFilter = Depends(),
         Returns:
             List[Transaction]: The list of transactions.
     """
-    logging.info("Getting transactions")
-
     async def _get_transactions() -> List[Transaction]:
         return await get_transactions(db, current_user, filter, skip, limit)
-    
-    logging.info("Transactions retrieved")
+
     return await process_request(_get_transactions)
 
 
@@ -57,12 +51,10 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
         Returns:
             Transaction: The created transaction object.
     """
-
-    logging.info("Creating transaction")
     async def _create_transaction() -> TransactionCreate:
         return await create_transaction(db, transaction, current_user.id)
     
-    logging.info("Transaction created")
+
     return await process_request(_create_transaction)
 
 
@@ -78,10 +70,9 @@ async def confirm_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
         Returns:
             Transaction: The confirmed transaction object.
     """
-    logging.info("Confirming transaction")
     async def _confirm_transaction() -> Transaction:
         return await confirm_transaction(transaction_id, db, current_user.id)
-    logging.info("Transaction confirmed")
+
     return await process_request(_confirm_transaction)
 
 
@@ -98,10 +89,9 @@ async def approve_transaction_endpoint(transaction_id: UUID, db: AsyncSession = 
         Returns:
             Transaction: The approved transaction object.
     """
-    logging.info("Approving transaction")
     async def _approve_transaction() -> Transaction:
         return await approve_transaction(db, transaction_id, current_user.id)
-    logging.info("Transaction approved")
+
     return await process_request(_approve_transaction)
 
 
@@ -117,10 +107,9 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
         Returns:
             Transaction: The rejected transaction object.
     """
-    logging.info("Rejecting transaction")
     async def _reject_transaction() -> Transaction:
         return await reject_transaction(db, transaction_id, current_user.id)
-    logging.info("Transaction rejected")
+
     return await process_request(_reject_transaction)
 
 
@@ -136,8 +125,7 @@ async def deny_transaction_endpoint(transaction_id: UUID, db: AsyncSession = Dep
         Returns:
             Transaction: The denied transaction object.
     """
-    logging.info("Denying transaction")
     async def _deny_transaction() -> Transaction:
         return await deny_transaction(db, current_user, transaction_id)
-    logging.info("Transaction denied")
+
     return await process_request(_deny_transaction)

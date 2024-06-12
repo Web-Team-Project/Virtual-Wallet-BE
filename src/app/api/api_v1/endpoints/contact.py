@@ -6,7 +6,7 @@ from app.services.common.utils import get_current_user, process_request
 from app.services.crud.contact import create_contact, delete_contact, read_contact, read_contacts
 from app.sql_app.database import get_db
 from app.sql_app.models.models import User
-import logging
+
 
 router = APIRouter()
 
@@ -23,10 +23,9 @@ async def create(contact: ContactCreate, current_user: User = Depends(get_curren
         Returns:
             Contact: The created contact object.
     """
-    logging.info("Creating new contact")
     async def _create_contact():
         return await create_contact(current_user, contact, db)
-    logging.info("Contact created")
+
     return await process_request(_create_contact)
 
 
@@ -46,10 +45,9 @@ async def view_contacts(skip: int = 0, limit: int = 100,
         Returns:
             List[Contact]: The list of contacts.
     """
-    logging.info("Getting contacts")
     async def _read_contacts():
         return await read_contacts(current_user, skip, limit, db, search)
-    logging.info("Contacts retrieved")
+
     return await process_request(_read_contacts)
 
 
@@ -64,10 +62,9 @@ async def read(contact_id: UUID, current_user: User = Depends(get_current_user),
         Returns:
             Contact: The contact details.
     """
-    logging.info("Reading contact")
     async def _read_contact():
         return await read_contact(current_user, contact_id, db)
-    logging.info("Contact read")
+    
     return await process_request(_read_contact)
 
 
@@ -82,8 +79,7 @@ async def delete(contact_id: UUID, current_user: User = Depends(get_current_user
         Returns:
             dict: A message confirming the deletion of the contact.
     """
-    logging.info("Deleting contact")
     async def _delete_contact():
         return await delete_contact(current_user, contact_id, db)
-    logging.info("Contact deleted")
+
     return await process_request(_delete_contact)
