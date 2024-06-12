@@ -317,7 +317,6 @@ async def test_create_transaction_recipient_wallet_not_found():
     db = AsyncMock(spec=AsyncSession)
     sender_id = uuid4()
     recipient_id = uuid4()
-    card_id = uuid4()
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
@@ -506,7 +505,6 @@ async def test_confirm_transaction_success():
     sender_id = current_user_id 
 
     transaction = Transaction(id=transaction_id, status=Status.pending, sender_id=sender_id)
-    current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = transaction
@@ -525,8 +523,7 @@ async def test_confirm_transaction_success():
 async def test_confirm_transaction_not_found():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = uuid4()
-    current_user_id = str(uuid4()) 
-    current_user = User(id=current_user_id)
+    current_user_id = str(uuid4())
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
@@ -549,7 +546,6 @@ async def test_confirm_transaction_already_confirmed():
     sender_id = uuid4()
     
     transaction = Transaction(id=transaction_id, status="confirmed", sender_id=sender_id)
-    current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = transaction
@@ -1156,7 +1152,6 @@ async def test_get_transactions_as_admin_no_filters():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=True)
 
-    # Mock related objects
     mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
     mock_recipient = User(id=uuid4(), email="recipient@example.com")
     mock_category = Category(id=uuid4(), name="Groceries")
@@ -1312,7 +1307,6 @@ async def test_get_transactions_with_sender_and_recipient_filters():
     sender_id = uuid4()
     recipient_id = uuid4()
 
-    # Mock related objects
     mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
     mock_recipient = User(id=recipient_id, email="recipient@example.com")
     mock_category = Category(id=uuid4(), name="Groceries")
@@ -1365,7 +1359,6 @@ async def test_get_transactions_with_direction_filters_incoming():
     sender_id = current_user.id
     recipient_id = uuid4()
 
-    # Mock related objects
     mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
     mock_recipient = User(id=recipient_id, email="recipient@example.com")
     mock_category = Category(id=uuid4(), name="Groceries")
@@ -1512,7 +1505,6 @@ async def test_get_transactions_sorted_by_date():
 
     now = datetime.utcnow()
 
-    # Mock related objects
     mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
     mock_recipient = User(id=uuid4(), email="recipient@example.com")
     mock_category = Category(id=uuid4(), name="Groceries")
