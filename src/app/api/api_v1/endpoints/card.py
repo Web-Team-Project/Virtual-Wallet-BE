@@ -8,7 +8,6 @@ from app.services.crud.card import create_card, read_all_cards, read_card, updat
 from app.sql_app.models.models import Card
 from uuid import UUID
 
-
 router = APIRouter()
 
 
@@ -42,7 +41,7 @@ async def read(card_id: UUID, db: AsyncSession = Depends(get_db), current_user: 
     """
     async def _read_card():
         return await read_card(db, card_id, current_user.id)
-
+    
     return await process_request(_read_card)
 
 

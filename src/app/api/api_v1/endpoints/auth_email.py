@@ -52,9 +52,8 @@ async def email_verify(token: str, db: AsyncSession = Depends(get_db)):
             db (AsyncSession): The database session.
         Returns:
             dict: A message confirming the verification.
-    """
-
+    """  
     async def _verify_email():
         return await verify_email(token, db)
-
+    
     return await process_request(_verify_email)

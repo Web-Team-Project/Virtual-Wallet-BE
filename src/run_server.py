@@ -1,7 +1,6 @@
 """
 Entry point for running server
 """
-#!/usr/bin/env python3
 
 from argparse import ArgumentParser
 

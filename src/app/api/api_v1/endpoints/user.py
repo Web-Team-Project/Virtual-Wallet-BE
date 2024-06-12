@@ -38,7 +38,7 @@ async def get_user(email: str, db: AsyncSession = Depends(get_db)):
     """
     async def _get_user():
         return await get_user_by_email(email, db)
-    
+
     return await process_request(_get_user)
 
 
@@ -77,7 +77,7 @@ async def verify_phone_endpoint(verify_phone_request: VerifyPhoneRequest,
 
     async def _verify_phone():
         return await verify_phone(code, db, current_user)
-
+    
     return await process_request(_verify_phone)
 
 
@@ -94,7 +94,7 @@ async def update_role(user_id: UUID, db: AsyncSession = Depends(get_db), current
     """
     async def _update_user_role():
         return await update_user_role(user_id, db, current_user)
-    
+
     return await process_request(_update_user_role)
 
 
@@ -111,7 +111,7 @@ async def deactivate(user_id: UUID, db: AsyncSession = Depends(get_db), current_
     """
     async def _deactivate_user():
         return await deactivate_user(user_id, db, current_user)
-    
+
     return await process_request(_deactivate_user)
 
 
@@ -128,7 +128,7 @@ async def block(user_id: str, db: AsyncSession = Depends(get_db), current_user: 
     """
     async def _block_user():
         return await block_user(user_id, db, current_user)
-    
+
     return await process_request(_block_user)
 
 
@@ -145,7 +145,7 @@ async def unblock(user_id: UUID, db: AsyncSession = Depends(get_db), current_use
     """
     async def _unblock_user():
         return await unblock_user(user_id, db, current_user)
-    
+
     return await process_request(_unblock_user)
 
 
@@ -168,5 +168,5 @@ async def search_all_users(search: str = None,
     """
     async def _search_users():
         return await search_users(db, skip, limit, current_user, search)
-    
+
     return await process_request(_search_users)

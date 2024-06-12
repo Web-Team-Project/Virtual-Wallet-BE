@@ -20,7 +20,7 @@ async def login_route():
     """
     async def _login():
         return await login()
-    
+
     return await process_request(_login)
 
 

@@ -53,6 +53,7 @@ async def create_transaction_endpoint(transaction: TransactionCreate, db: AsyncS
     """
     async def _create_transaction() -> TransactionCreate:
         return await create_transaction(db, transaction, current_user.id)
+    
 
     return await process_request(_create_transaction)
 
@@ -108,7 +109,7 @@ async def reject_transaction_endpoint(transaction_id: UUID, db: AsyncSession = D
     """
     async def _reject_transaction() -> Transaction:
         return await reject_transaction(db, transaction_id, current_user.id)
-    
+
     return await process_request(_reject_transaction)
 
 
