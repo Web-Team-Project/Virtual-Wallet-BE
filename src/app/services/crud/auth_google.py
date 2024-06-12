@@ -82,6 +82,6 @@ async def logout():
     """
     Logout the user. Delete the user cookie.
     """
-    response = RedirectResponse("http://localhost:8000/swagger")
+    response = RedirectResponse("https://virtual-wallet-87bx.onrender.com/swagger")
     response.delete_cookie("user")
     return response
