@@ -12,7 +12,7 @@ from app.schemas.transaction import TransactionCreate, TransactionFilter, Transa
 from app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, \
     get_transactions_by_user_id, reject_transaction, get_transactions, deny_transaction
 from app.sql_app.models.enumerate import Status
-from app.sql_app.models.models import Card, Transaction, User, Wallet
+from app.sql_app.models.models import Card, Transaction, User, Wallet, Category
 
 def sql_string(query):
     """Convert SQLAlchemy query to its string representation."""
@@ -28,15 +28,17 @@ async def test_create_transaction_success():
         amount=100,
         currency="USD",
         timestamp=datetime.now(timezone.utc),
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4()
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
+    recipient = User(id=recipient_id, email="recipient@example.com")
     recipient_wallet = Wallet(user_id=recipient_id, balance=1000)
     sender_wallet = Wallet(user_id=sender_id, balance=200)
-    card = Card(id=card_id, user_id=sender_id)
+    card = Card(user_id=sender_id, number="1234567890123456")
+    category = Category(name="Groceries")
 
     sender_mock_result = MagicMock()
     sender_mock_result.scalars.return_value.first.return_value = sender
@@ -47,13 +49,21 @@ async def test_create_transaction_success():
     card_mock_result = MagicMock()
     card_mock_result.scalars.return_value.first.return_value = card
 
+    recipient_mock_result = MagicMock()
+    recipient_mock_result.scalars.return_value.first.return_value = recipient
+
     recipient_wallet_mock_result = MagicMock()
     recipient_wallet_mock_result.scalars.return_value.first.return_value = recipient_wallet
+
+    category_mock_result = MagicMock()
+    category_mock_result.scalars.return_value.first.return_value = category
 
     db.execute = AsyncMock(side_effect=[
         sender_mock_result,
         sender_wallet_mock_result,
         card_mock_result,
+        recipient_mock_result,
+        category_mock_result,
         recipient_wallet_mock_result
     ])
     db.add = AsyncMock()
@@ -65,7 +75,9 @@ async def test_create_transaction_success():
     expected_calls = [
         sql_string(select(User).where(User.id == sender_id)),
         sql_string(select(Wallet).where(Wallet.user_id == sender_id, Wallet.currency == transaction_data.currency)),
-        sql_string(select(Card).where(Card.id == card_id, Card.user_id == sender_id)),
+        sql_string(select(Card).where(Card.number == transaction_data.card_number, Card.user_id == sender_id)),
+        sql_string(select(User).where(User.email == transaction_data.recipient_email)),
+        sql_string(select(Category).where(Category.name == transaction_data.category)),
         sql_string(select(Wallet).where(Wallet.user_id == recipient_id))
     ]
 
@@ -83,10 +95,10 @@ async def test_create_transaction_success():
 
     assert transaction.amount == transaction_data.amount
     assert transaction.currency == transaction_data.currency
-    assert transaction.card_id == transaction_data.card_id
-    assert transaction.sender_id == sender_id
-    assert transaction.recipient_id == transaction_data.recipient_id
-    assert transaction.status == "pending"
+    assert transaction.card_number == transaction_data.card_number
+    assert  transaction.recipient_email == transaction_data.recipient_email
+    assert transaction.category == transaction_data.category
+
 
 
 @pytest.mark.asyncio
@@ -96,10 +108,10 @@ async def test_create_transaction_sender_not_found():
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=uuid4(),
-        recipient_id=uuid4(),
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender_mock_result = MagicMock()
@@ -121,10 +133,10 @@ async def test_create_transaction_sender_blocked():
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=uuid4(),
-        recipient_id=uuid4(),
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=True)
@@ -141,9 +153,6 @@ async def test_create_transaction_sender_blocked():
     assert excinfo.value.detail == "Sender is blocked."
 
 
-
-
-
 @pytest.mark.asyncio
 async def test_create_transaction_sender_wallet_currency_not_found():
     db = AsyncMock(spec=AsyncSession)
@@ -151,10 +160,10 @@ async def test_create_transaction_sender_wallet_currency_not_found():
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=uuid4(),
-        recipient_id=uuid4(),
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
@@ -184,10 +193,10 @@ async def test_create_transaction_insufficient_funds():
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=uuid4(),
-        recipient_id=uuid4(),
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
@@ -218,10 +227,10 @@ async def test_create_transaction_card_not_found():
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=uuid4(),
-        recipient_id=uuid4(),
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
@@ -248,26 +257,25 @@ async def test_create_transaction_card_not_found():
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
     assert excinfo.value.detail == "Card not found."
 
-
 @pytest.mark.asyncio
-async def test_create_transaction_recipient_wallet_not_found():
+async def test_create_transaction_recipient_not_found():
     db = AsyncMock(spec=AsyncSession)
     sender_id = uuid4()
-    recipient_id = uuid4()
     card_id = uuid4()
     transaction_data = TransactionCreate(
         amount=100,
         currency="USD",
-        timestamp=datetime.utcnow(),
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4()
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
-    sender_wallet = Wallet(user_id=sender_id, balance=200)
+    sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")
     card = Card(id=card_id, user_id=sender_id)
-    
+    category = Category(id=uuid4(), name="Groceries")
+
     sender_mock_result = MagicMock()
     sender_mock_result.scalars.return_value.first.return_value = sender
 
@@ -277,13 +285,77 @@ async def test_create_transaction_recipient_wallet_not_found():
     card_mock_result = MagicMock()
     card_mock_result.scalars.return_value.first.return_value = card
 
-    recipient_wallet_mock_result = MagicMock()
-    recipient_wallet_mock_result.scalars.return_value.first.return_value = None
+    recipient_mock_result = MagicMock()
+    recipient_mock_result.scalars.return_value.first.return_value = None
+
+    category_mock_result = MagicMock()
+    category_mock_result.scalars.return_value.first.return_value = category
 
     db.execute = AsyncMock(side_effect=[
         sender_mock_result,
         sender_wallet_mock_result,
         card_mock_result,
+        recipient_mock_result,
+        category_mock_result
+    ])
+    db.add = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await create_transaction(db, transaction_data, sender_id)
+
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc_info.value.detail == "Recipient not found."
+
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_create_transaction_recipient_wallet_not_found():
+    db = AsyncMock(spec=AsyncSession)
+    sender_id = uuid4()
+    recipient_id = uuid4()
+    transaction_data = TransactionCreate(
+        amount=100,
+        currency="USD",
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
+    )
+
+    sender = User(id=sender_id, is_blocked=False)
+    recipient = User(id=recipient_id, email="recipient@example.com")
+    sender_wallet = Wallet(user_id=sender_id, balance=200)
+    card = Card(user_id=sender_id, number="1234567890123456")
+    category = Category(name="Groceries")
+
+    sender_mock_result = MagicMock()
+    sender_mock_result.scalars.return_value.first.return_value = sender
+
+    sender_wallet_mock_result = MagicMock()
+    sender_wallet_mock_result.scalars.return_value.first.return_value = sender_wallet
+
+    card_mock_result = MagicMock()
+    card_mock_result.scalars.return_value.first.return_value = card
+
+    recipient_mock_result = MagicMock()
+    recipient_mock_result.scalars.return_value.first.return_value = recipient
+
+    recipient_wallet_mock_result = MagicMock()
+    recipient_wallet_mock_result.scalars.return_value.first.return_value = None
+
+    category_mock_result = MagicMock()
+    category_mock_result.scalars.return_value.first.return_value = category
+
+    db.execute = AsyncMock(side_effect=[
+        sender_mock_result,
+        sender_wallet_mock_result,
+        card_mock_result,
+        recipient_mock_result,
+        category_mock_result,
         recipient_wallet_mock_result
     ])
     db.add = AsyncMock()
@@ -312,12 +384,13 @@ async def test_create_transaction_wallet_currency_mismatch():
         amount=100,
         currency="USD",
         timestamp=datetime.now(timezone.utc),
-        card_id=card_id,
-        recipient_id=recipient_id,
-        category_id=uuid4()
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="Groceries"
     )
 
     sender = User(id=sender_id, is_blocked=False)
+    recipient = User(id=recipient_id, email="recipient@example.com")
     recipient_wallet = Wallet(user_id=recipient_id, balance=1000, currency="EUR")
     sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")
     card = Card(id=card_id, user_id=sender_id)
@@ -331,13 +404,21 @@ async def test_create_transaction_wallet_currency_mismatch():
     card_mock_result = MagicMock()
     card_mock_result.scalars.return_value.first.return_value = card
 
+    recipient_mock_result = MagicMock()
+    recipient_mock_result.scalars.return_value.first.return_value = recipient
+
     recipient_wallet_mock_result = MagicMock()
     recipient_wallet_mock_result.scalars.return_value.first.return_value = recipient_wallet
+
+    category_mock_result = MagicMock()
+    category_mock_result.scalars.return_value.first.return_value = Category(id=uuid4(), name="Groceries")
 
     db.execute = AsyncMock(side_effect=[
         sender_mock_result,
         sender_wallet_mock_result,
         card_mock_result,
+        recipient_mock_result,
+        category_mock_result,
         recipient_wallet_mock_result
     ])
     db.add = AsyncMock()
@@ -355,6 +436,67 @@ async def test_create_transaction_wallet_currency_mismatch():
     db.refresh.assert_not_called()
 
 @pytest.mark.asyncio
+async def test_create_transaction_category_not_found():
+    db = AsyncMock(spec=AsyncSession)
+    sender_id = uuid4()
+    recipient_id = uuid4()
+    card_id = uuid4()
+    transaction_data = TransactionCreate(
+        amount=100,
+        currency="USD",
+        timestamp=datetime.now(timezone.utc),
+        card_number="1234567890123456",
+        recipient_email="recipient@example.com",
+        category="NonExistingCategory"
+    )
+
+    sender = User(id=sender_id, is_blocked=False)
+    recipient = User(id=recipient_id, email="recipient@example.com")
+    recipient_wallet = Wallet(user_id=recipient_id, balance=1000, currency="USD")
+    sender_wallet = Wallet(user_id=sender_id, balance=200, currency="USD")
+    card = Card(id=card_id, user_id=sender_id)
+
+    sender_mock_result = MagicMock()
+    sender_mock_result.scalars.return_value.first.return_value = sender
+
+    sender_wallet_mock_result = MagicMock()
+    sender_wallet_mock_result.scalars.return_value.first.return_value = sender_wallet
+
+    card_mock_result = MagicMock()
+    card_mock_result.scalars.return_value.first.return_value = card
+
+    recipient_mock_result = MagicMock()
+    recipient_mock_result.scalars.return_value.first.return_value = recipient
+
+    recipient_wallet_mock_result = MagicMock()
+    recipient_wallet_mock_result.scalars.return_value.first.return_value = recipient_wallet
+
+    category_mock_result = MagicMock()
+    category_mock_result.scalars.return_value.first.return_value = None
+
+    db.execute = AsyncMock(side_effect=[
+        sender_mock_result,
+        sender_wallet_mock_result,
+        card_mock_result,
+        recipient_mock_result,
+        category_mock_result,
+        recipient_wallet_mock_result
+    ])
+    db.add = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await create_transaction(db, transaction_data, sender_id)
+
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc_info.value.detail == "Category not found."
+
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
+
+@pytest.mark.asyncio
 async def test_confirm_transaction_success():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = str(uuid.uuid4()) 
@@ -363,7 +505,6 @@ async def test_confirm_transaction_success():
     sender_id = current_user_id 
 
     transaction = Transaction(id=transaction_id, status=Status.pending, sender_id=sender_id)
-    current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = transaction
@@ -382,8 +523,7 @@ async def test_confirm_transaction_success():
 async def test_confirm_transaction_not_found():
     db = AsyncMock(spec=AsyncSession)
     transaction_id = uuid4()
-    current_user_id = str(uuid4()) 
-    current_user = User(id=current_user_id)
+    current_user_id = str(uuid4())
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
@@ -406,7 +546,6 @@ async def test_confirm_transaction_already_confirmed():
     sender_id = uuid4()
     
     transaction = Transaction(id=transaction_id, status="confirmed", sender_id=sender_id)
-    current_user = User(id=current_user_id)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = transaction
@@ -859,11 +998,18 @@ async def test_deny_transaction_success():
 async def test_get_transactions_as_admin():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=True)
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=mock_recipient.id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=mock_recipient.id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter()
@@ -878,7 +1024,20 @@ async def test_get_transactions_as_admin():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
     assert len(result.transactions) == len(
         expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
@@ -892,11 +1051,17 @@ async def test_get_transactions_non_admin_user():
     sender_id = current_user.id
     recipient_id = uuid4()
 
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter()
@@ -911,10 +1076,22 @@ async def test_get_transactions_non_admin_user():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -926,11 +1103,17 @@ async def test_get_transactions_with_filters():
     sender_id = current_user.id
     recipient_id = uuid4()
 
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(sender_id=sender_id)
@@ -945,23 +1128,41 @@ async def test_get_transactions_with_filters():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
-
 
 @pytest.mark.asyncio
 async def test_get_transactions_as_admin_no_filters():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=True)
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=mock_recipient.id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=mock_recipient.id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter()
@@ -976,13 +1177,24 @@ async def test_get_transactions_as_admin_no_filters():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
-
 
 @pytest.mark.asyncio
 async def test_get_transactions_as_non_admin_no_filters():
@@ -991,11 +1203,17 @@ async def test_get_transactions_as_non_admin_no_filters():
     sender_id = current_user.id
     recipient_id = uuid4()
 
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=recipient_id, email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=recipient_id, recipient_id=sender_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=recipient_id, recipient_id=sender_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter()
@@ -1010,10 +1228,22 @@ async def test_get_transactions_as_non_admin_no_filters():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -1024,11 +1254,18 @@ async def test_get_transactions_with_date_filters():
     current_user = User(id=uuid4(), is_admin=True)
     start_date = datetime.utcnow() - timedelta(days=1)
     end_date = datetime.utcnow()
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=start_date + timedelta(hours=1), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=start_date + timedelta(hours=2), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=start_date + timedelta(hours=1), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=start_date + timedelta(hours=2), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(start_date=start_date, end_date=end_date)
@@ -1043,10 +1280,22 @@ async def test_get_transactions_with_date_filters():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -1057,11 +1306,18 @@ async def test_get_transactions_with_sender_and_recipient_filters():
     current_user = User(id=uuid4(), is_admin=True)
     sender_id = uuid4()
     recipient_id = uuid4()
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=recipient_id, email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(sender_id=sender_id, recipient_id=recipient_id)
@@ -1076,10 +1332,22 @@ async def test_get_transactions_with_sender_and_recipient_filters():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -1091,9 +1359,14 @@ async def test_get_transactions_with_direction_filters_incoming():
     sender_id = current_user.id
     recipient_id = uuid4()
 
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=recipient_id, email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(direction="incoming")
@@ -1108,23 +1381,40 @@ async def test_get_transactions_with_direction_filters_incoming():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
 @pytest.mark.asyncio
-async def test_get_transactions_with_direction_filters_outcoming():
+async def test_get_transactions_with_direction_filters_outgoing():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=False)
     sender_id = current_user.id
     recipient_id = uuid4()
 
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=recipient_id, email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=sender_id, recipient_id=recipient_id, category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=sender_id, recipient_id=recipient_id, category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(direction="outgoing")
@@ -1139,10 +1429,22 @@ async def test_get_transactions_with_direction_filters_outcoming():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in transactions]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -1150,11 +1452,18 @@ async def test_get_transactions_with_direction_filters_outcoming():
 async def test_get_transactions_with_sorting_amount():
     db = AsyncMock(spec=AsyncSession)
     current_user = User(id=uuid4(), is_admin=True)
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending")
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=datetime.utcnow(), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category)
     ]
 
     filter = TransactionFilter(sort_by="amount")
@@ -1169,10 +1478,22 @@ async def test_get_transactions_with_sorting_amount():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in sorted(transactions, key=lambda x: x.amount)]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in sorted(transactions, key=lambda x: x.amount)]
 
-    assert len(result.transactions) == len(
-        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
@@ -1183,13 +1504,21 @@ async def test_get_transactions_sorted_by_date():
     current_user = User(id=uuid4(), is_admin=True)
 
     now = datetime.utcnow()
+
+    mock_card = Card(id=uuid4(), number="1234-5678-8765-4321")
+    mock_recipient = User(id=uuid4(), email="recipient@example.com")
+    mock_category = Category(id=uuid4(), name="Groceries")
+
     transactions = [
-        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=now - timedelta(days=3), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=now - timedelta(days=1), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
-        Transaction(id=uuid4(), amount=300, currency="GBP", timestamp=now - timedelta(days=2), card_id=uuid4(),
-                    sender_id=uuid4(), recipient_id=uuid4(), category_id=uuid4(), status="pending"),
+        Transaction(id=uuid4(), amount=100, currency="USD", timestamp=now - timedelta(days=3), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=200, currency="EUR", timestamp=now - timedelta(days=1), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
+        Transaction(id=uuid4(), amount=300, currency="GBP", timestamp=now - timedelta(days=2), card_id=mock_card.id,
+                    sender_id=uuid4(), recipient_id=uuid4(), category_id=mock_category.id, status="pending",
+                    card=mock_card, recipient=mock_recipient, category=mock_category),
     ]
 
     filter = TransactionFilter(sort_by="date")
@@ -1205,8 +1534,22 @@ async def test_get_transactions_sorted_by_date():
 
     result = await get_transactions(db, current_user, filter, skip=0, limit=10)
 
-    expected_transactions = [TransactionView.from_orm(tx) for tx in sorted_transactions]
+    expected_transactions = [TransactionView(
+        id=tx.id,
+        amount=tx.amount,
+        currency=tx.currency,
+        timestamp=tx.timestamp,
+        card_id=tx.card_id,
+        sender_id=tx.sender_id,
+        recipient_id=tx.recipient_id,
+        category_id=tx.category_id,
+        status=tx.status,
+        card_number=tx.card.number,
+        recipient_email=tx.recipient.email,
+        category_name=tx.category.name
+    ) for tx in sorted_transactions]
 
-    assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
+    assert len(result.transactions) == len(
+        expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."

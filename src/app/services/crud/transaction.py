@@ -52,7 +52,7 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     if not recipient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Recipient not found.")
-    
+
     category_result = await db.execute(select(Category).where(Category.name == transaction_data.category))
     category = category_result.scalars().first()
     if not category:
@@ -198,13 +198,13 @@ async def get_transactions(db: AsyncSession, current_user: User, filter: Transac
         transaction_view = TransactionView(
             id=transaction.id,
             amount=transaction.amount,
-            currency=transaction.currency.name,
+            currency=transaction.currency,
             timestamp=transaction.timestamp,
             card_id=transaction.card_id,
             sender_id=transaction.sender_id,
             recipient_id=transaction.recipient_id,
             category_id=transaction.category_id,
-            status=transaction.status.name,
+            status=transaction.status,
             card_number=transaction.card.number,
             recipient_email=transaction.recipient.email,
             category_name=transaction.category.name
