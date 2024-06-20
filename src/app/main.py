@@ -16,7 +16,7 @@ from app.services.crud.recurring_transaction import process_recurring_transactio
 SECRET_KEY = "supersecretkey"
 CORS = ["http://localhost:3000",
         "https://virtual-wallet-87bx.onrender.com",
-        "https://terrawallet.vercel.app",
+        "https://terrawallet.azurewebsites.net",
         "https://terrawallet.eu,"]
 
 
