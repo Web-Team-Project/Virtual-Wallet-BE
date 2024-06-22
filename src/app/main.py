@@ -16,8 +16,7 @@ from app.services.crud.recurring_transaction import process_recurring_transactio
 SECRET_KEY = "supersecretkey"
 CORS = ["http://localhost:3000",
         "https://virtual-wallet-87bx.onrender.com",
-        "https://terrawallet.azurewebsites.net",
-        "https://terrawallet.eu,"]
+        "https://terrawallet-fe.onrender.com"]
 
 
 def _setup_cors(p_app: FastAPI) -> None:
