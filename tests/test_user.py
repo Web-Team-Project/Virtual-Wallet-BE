@@ -1,10 +1,7 @@
 import asyncio
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 import pytest
-from sqlalchemy import func, select, or_
-from app.sql_app.database import AsyncSessionLocal, Base, engine, get_db
 from app.schemas.user import UserBase
 from app.services.crud.user import create_user, user_info, get_user_by_email, get_user_by_id, get_user_by_phone, \
     update_user_role, deactivate_user, block_user, unblock_user, search_users
@@ -12,6 +9,7 @@ from app.sql_app.models.models import Card, Category, Contact, Transaction, User
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import UUID
 from fastapi import HTTPException, status
+
 
 @pytest.fixture
 def db():
@@ -22,6 +20,7 @@ def db():
     db.refresh = AsyncMock()
     db.scalar_one_or_none = AsyncMock()
     return db
+
 
 @pytest.fixture
 def mock_user():
@@ -36,6 +35,7 @@ def mock_user():
     mock_user.locale = "en"
     mock_user.sub = "test-sub"
     return mock_user
+
 
 @pytest.mark.asyncio
 async def test_user_info(db, mock_user):
@@ -283,6 +283,7 @@ async def test_block_user_not_found(db, mock_user):
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
 
+
 @pytest.mark.asyncio
 async def test_block_user_success(db, mock_user):
     user_to_block = MagicMock(spec=User)
@@ -312,6 +313,7 @@ async def test_unblock_user_not_authorized(db, mock_user):
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
 
+
 @pytest.mark.asyncio
 async def test_unblock_user_not_found(db, mock_user):
     mock_result = MagicMock()
@@ -323,6 +325,7 @@ async def test_unblock_user_not_found(db, mock_user):
 
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
+
 
 @pytest.mark.asyncio
 async def test_unblock_user_success(db, mock_user):
@@ -352,6 +355,3 @@ async def test_search_users_not_authorized(db, mock_user):
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
-
-
-

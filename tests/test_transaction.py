@@ -7,16 +7,17 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
-
 from app.schemas.transaction import TransactionCreate, TransactionFilter, TransactionView
 from app.services.crud.transaction import approve_transaction, confirm_transaction, create_transaction, \
     get_transactions_by_user_id, reject_transaction, get_transactions, deny_transaction
 from app.sql_app.models.enumerate import Status
 from app.sql_app.models.models import Card, Transaction, User, Wallet, Category
 
+
 def sql_string(query):
     """Convert SQLAlchemy query to its string representation."""
     return str(query.compile(compile_kwargs={"literal_binds": True}))
+
 
 @pytest.mark.asyncio
 async def test_create_transaction_success():
@@ -98,7 +99,6 @@ async def test_create_transaction_success():
     assert transaction.card_number == transaction_data.card_number
     assert  transaction.recipient_email == transaction_data.recipient_email
     assert transaction.category == transaction_data.category
-
 
 
 @pytest.mark.asyncio
@@ -257,6 +257,7 @@ async def test_create_transaction_card_not_found():
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
     assert excinfo.value.detail == "Card not found."
 
+
 @pytest.mark.asyncio
 async def test_create_transaction_recipient_not_found():
     db = AsyncMock(spec=AsyncSession)
@@ -311,6 +312,7 @@ async def test_create_transaction_recipient_not_found():
     db.add.assert_not_called()
     db.commit.assert_not_called()
     db.refresh.assert_not_called()
+
 
 @pytest.mark.asyncio
 async def test_create_transaction_recipient_wallet_not_found():
@@ -435,6 +437,7 @@ async def test_create_transaction_wallet_currency_mismatch():
     db.commit.assert_not_called()
     db.refresh.assert_not_called()
 
+
 @pytest.mark.asyncio
 async def test_create_transaction_category_not_found():
     db = AsyncMock(spec=AsyncSession)
@@ -496,6 +499,7 @@ async def test_create_transaction_category_not_found():
     db.commit.assert_not_called()
     db.refresh.assert_not_called()
 
+
 @pytest.mark.asyncio
 async def test_confirm_transaction_success():
     db = AsyncMock(spec=AsyncSession)
@@ -518,6 +522,7 @@ async def test_confirm_transaction_success():
     confirmed_transaction = await confirm_transaction(transaction_id, db, current_user_id)
 
     assert confirmed_transaction == transaction
+
 
 @pytest.mark.asyncio
 async def test_confirm_transaction_not_found():
@@ -596,8 +601,8 @@ async def test_get_transactions_by_user_id_with_transactions():
 
 
 def test_direct_comparison():
-    transaction_recipient_id = UUID('bed1718a-fb0d-4c65-a29d-fd2ceef9b07d')
-    current_user_id = UUID('bed1718a-fb0d-4c65-a29d-fd2ceef9b07d')
+    transaction_recipient_id = UUID("bed1718a-fb0d-4c65-a29d-fd2ceef9b07d")
+    current_user_id = UUID("bed1718a-fb0d-4c65-a29d-fd2ceef9b07d")
     assert transaction_recipient_id == current_user_id
 
 
@@ -873,7 +878,6 @@ async def test_reject_transaction_already_declined():
     assert excinfo.value.detail == "You can only reject awaiting transactions."
 
 
-
 @pytest.mark.asyncio
 async def test_reject_transaction_success():
     db = AsyncMock(spec=AsyncSession)
@@ -1147,6 +1151,7 @@ async def test_get_transactions_with_filters():
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
+
 @pytest.mark.asyncio
 async def test_get_transactions_as_admin_no_filters():
     db = AsyncMock(spec=AsyncSession)
@@ -1195,6 +1200,7 @@ async def test_get_transactions_as_admin_no_filters():
     assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
 
 @pytest.mark.asyncio
 async def test_get_transactions_as_non_admin_no_filters():
@@ -1400,6 +1406,7 @@ async def test_get_transactions_with_direction_filters_incoming():
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
 
+
 @pytest.mark.asyncio
 async def test_get_transactions_with_direction_filters_outgoing():
     db = AsyncMock(spec=AsyncSession)
@@ -1447,6 +1454,7 @@ async def test_get_transactions_with_direction_filters_outgoing():
     assert len(result.transactions) == len(expected_transactions), f"Expected {len(expected_transactions)} transactions but got {len(result.transactions)}"
     assert result.total == len(transactions), f"Expected total {len(transactions)} but got {result.total}"
     assert result.transactions == expected_transactions, "Transactions do not match the expected result."
+
 
 @pytest.mark.asyncio
 async def test_get_transactions_with_sorting_amount():

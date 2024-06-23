@@ -4,7 +4,6 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, MagicMock
 import pytest
-
 from app.schemas.card import CardCreate
 from app.schemas.user import User
 from app.services.crud.card import create_card, delete_card, read_card, update_card, read_all_cards

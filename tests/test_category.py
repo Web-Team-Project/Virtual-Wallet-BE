@@ -4,11 +4,9 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
-
 from app.schemas.category import CategoryCreate
 from app.services.crud.category import create_category, delete_category, read_categories
 from app.sql_app.models.models import Category, Transaction
-
 
 
 @pytest.mark.asyncio
@@ -97,6 +95,7 @@ async def test_delete_category_success():
     db.delete.assert_awaited_once_with(mock_category)
     db.commit.assert_awaited_once()
     assert response == {"message": "Category has been deleted."}
+
 
 @pytest.mark.asyncio
 async def test_delete_category_not_found():

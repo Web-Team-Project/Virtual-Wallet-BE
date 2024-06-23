@@ -9,6 +9,7 @@ from app.sql_app.models.models import User
 from itsdangerous import SignatureExpired, BadSignature
 from uuid import UUID, uuid4
 
+
 @pytest.fixture
 def db():
     db = MagicMock(spec=AsyncSession)
@@ -134,6 +135,7 @@ async def test_verify_email_with_bad_signature_token(db):
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Invalid verification link."
 
+
 @pytest.mark.asyncio
 async def test_verify_email_with_expired_token(db):
     token = "expired_token"
@@ -147,6 +149,7 @@ async def test_verify_email_with_expired_token(db):
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Verification link expired."
 
+
 @pytest.mark.asyncio
 async def test_authenticate_user_with_invalid_password(db, mock_user):
     mock_pwd_context = MagicMock()
@@ -159,7 +162,6 @@ async def test_authenticate_user_with_invalid_password(db, mock_user):
 
         assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert excinfo.value.detail == "Incorrect email or password."
-
 
 
 @pytest.mark.asyncio

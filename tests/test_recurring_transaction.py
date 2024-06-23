@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytz
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-
 from app.schemas.transaction import RecurringTransactionCreate, TransactionCreate
 from app.services.crud.recurring_transaction import create_recurring_transaction, process_recurring_transactions, \
     cancel_recurring_transaction, get_recurring_transactions
@@ -399,6 +398,7 @@ async def test_cancel_recurring_transaction_success():
     assert cancelled_transaction == recurring_transaction
     db.commit.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_cancel_recurring_transaction_not_found():
     db = AsyncMock(spec=AsyncSession)
@@ -412,6 +412,7 @@ async def test_cancel_recurring_transaction_not_found():
 
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "Recurring transaction not found."
+
 
 @pytest.mark.asyncio
 async def test_cancel_recurring_transaction_permission_denied():
@@ -606,10 +607,6 @@ async def test_process_due_recurring_transactions_create_transaction_fail():
     db.commit.assert_not_called()
 
 
-
-
-
-
 @pytest.mark.asyncio
 async def test_get_recurring_transactions_empty():
     db = AsyncMock(spec=AsyncSession)
@@ -711,6 +708,7 @@ async def test_process_due_recurring_transactions_exception_handling():
     db.rollback.assert_called_once()
     db.commit.assert_not_called()
 
+
 @pytest.mark.asyncio
 async def test_get_recurring_transactions_db_access_issue():
     db = AsyncMock(spec=AsyncSession)
@@ -773,6 +771,7 @@ async def test_process_due_recurring_transactions_daily():
     assert recurring_transaction.next_execution_date == expected_next_execution_date
 
     db.commit.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_process_due_recurring_transactions_weekly():
