@@ -5,6 +5,8 @@ The project is developed using the FastAPI framework for the backend, along with
 
 On the frontend, we've used Next.js, a React framework, to build the application entirely from scratch without using any templates. We've also used Tailwind CSS to style the frontend components.
 
+The frontend repository can be found [here](https://github.com/Web-Team-Project/Virtual-Wallet-FE).
+
 ## Features
 
 - **User Authentication**: terraWallet has two types of authentication: email and password, and Google OAuth. Users can sign up using their email and password or Google account. Cookies are used to maintain the user's session.
@@ -17,8 +19,13 @@ On the frontend, we've used Next.js, a React framework, to build the application
 - **Recurring Transactions**: Users can set up recurring transactions that will be automatically executed at a specified interval. They are handled by using cron jobs.
 
 ## Technologies Used
-- **Backend**: FastAPI, Async, SQLAlchemy, PostgreSQL, Pydantic, Pytest, JWT, Google OAuth, APScheduler, Twilio, SMTP, Docker
+- **Backend**: FastAPI, Asynchronous, SQLAlchemy, PostgreSQL, Pydantic, Pytest, JWT, Google OAuth, APScheduler, Twilio, SMTP, CI pipeline, Docker
 - **Frontend**: Next.js, Tailwind CSS, TypeScript
+
+## Hosted On
+The project is hosted on Render, a cloud platform that makes it easy for developers to deploy web applications. You can access the application using the following links:
+- [Backend](https://virtual-wallet-87bx.onrender.com)
+- [Frontend](https://terrawallet-fe.onrender.com)
 
 ## Project Screenshots
 - Landing page. Users can sign up or log in.
