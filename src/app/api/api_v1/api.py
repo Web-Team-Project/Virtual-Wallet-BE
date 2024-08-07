@@ -1,8 +1,17 @@
 """REST API endpoints"""
+
 from fastapi import APIRouter
 
 from app.api.api_v1.endpoints import (
-    auth_google, user, card, transaction, category, contact, wallet, auth_email, recurring_transaction
+    auth_email,
+    auth_google,
+    card,
+    category,
+    contact,
+    recurring_transaction,
+    transaction,
+    user,
+    wallet,
 )
 
 api_router = APIRouter()
@@ -39,16 +48,10 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    recurring_transaction.router,
-    prefix="",
-    tags=["Recurring Transactions"]
+    recurring_transaction.router, prefix="", tags=["Recurring Transactions"]
 )
 
-api_router.include_router(
-    category.router,
-    prefix="",
-    tags=["Category"]
-)
+api_router.include_router(category.router, prefix="", tags=["Category"])
 
 api_router.include_router(
     contact.router,

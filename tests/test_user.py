@@ -1,14 +1,24 @@
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
 import pytest
 from app.schemas.user import UserBase
-from app.services.crud.user import create_user, user_info, get_user_by_email, get_user_by_id, get_user_by_phone, \
-    update_user_role, deactivate_user, block_user, unblock_user, search_users
+from app.services.crud.user import (
+    block_user,
+    create_user,
+    deactivate_user,
+    get_user_by_email,
+    get_user_by_id,
+    get_user_by_phone,
+    search_users,
+    unblock_user,
+    update_user_role,
+    user_info,
+)
 from app.sql_app.models.models import Card, Category, Contact, Transaction, User
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import UUID
 from fastapi import HTTPException, status
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
@@ -48,23 +58,54 @@ async def test_user_info(db, mock_user):
         picture=mock_user.picture,
         email_verified=mock_user.email_verified,
         locale=mock_user.locale,
-        sub=mock_user.sub
+        sub=mock_user.sub,
     )
 
-    card = Card(id=uuid4(), user_id=mock_user.id, number="1234567812345678", card_holder="Test Holder",
-                exp_date="12/24", cvv="123", design="Test Design")
+    card = Card(
+        id=uuid4(),
+        user_id=mock_user.id,
+        number="1234567812345678",
+        card_holder="Test Holder",
+        exp_date="12/24",
+        cvv="123",
+        design="Test Design",
+    )
     category = Category(id=uuid4(), user_id=mock_user.id, name="Test Category")
     contact = Contact(id=uuid4(), user_id=mock_user.id, user_contact_id=mock_user.id)
-    transaction = Transaction(id=uuid4(), card_id=card.id, amount=100.0, currency="USD", timestamp=None,
-                              category_id=category.id, status="pending", sender_id=mock_user.id,
-                              recipient_id=mock_user.id,
-                              wallet_id=uuid4())
+    transaction = Transaction(
+        id=uuid4(),
+        card_id=card.id,
+        amount=100.0,
+        currency="USD",
+        timestamp=None,
+        category_id=category.id,
+        status="pending",
+        sender_id=mock_user.id,
+        recipient_id=mock_user.id,
+        wallet_id=uuid4(),
+    )
 
     db.execute.side_effect = [
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[card])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[category])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[contact])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[transaction]))))
+        MagicMock(
+            scalars=MagicMock(
+                return_value=MagicMock(all=MagicMock(return_value=[card]))
+            )
+        ),
+        MagicMock(
+            scalars=MagicMock(
+                return_value=MagicMock(all=MagicMock(return_value=[category]))
+            )
+        ),
+        MagicMock(
+            scalars=MagicMock(
+                return_value=MagicMock(all=MagicMock(return_value=[contact]))
+            )
+        ),
+        MagicMock(
+            scalars=MagicMock(
+                return_value=MagicMock(all=MagicMock(return_value=[transaction]))
+            )
+        ),
     ]
 
     result = await user_info(db, user_base)
@@ -91,14 +132,22 @@ async def test_user_info_no_data(db, mock_user):
         picture=mock_user.picture,
         email_verified=mock_user.email_verified,
         locale=mock_user.locale,
-        sub=mock_user.sub
+        sub=mock_user.sub,
     )
 
     db.execute.side_effect = [
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
-        MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[]))))
+        MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        ),
+        MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        ),
+        MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        ),
+        MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        ),
     ]
 
     result = await user_info(db, user_base)
@@ -178,7 +227,9 @@ async def test_update_user_role_not_admin():
     current_user = User(id=UUID("123e4567-e89b-12d3-a456-426614174000"), is_admin=False)
 
     with pytest.raises(HTTPException) as exc_info:
-        await update_user_role(UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user)
+        await update_user_role(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user
+        )
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
 
@@ -192,7 +243,9 @@ async def test_update_user_role_user_not_found():
     db_mock.get.return_value = None
 
     with pytest.raises(HTTPException) as exc_info:
-        await update_user_role(UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user)
+        await update_user_role(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user
+        )
 
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
@@ -204,10 +257,14 @@ async def test_update_user_role_success():
 
     current_user = User(id=UUID("123e4567-e89b-12d3-a456-426614174000"), is_admin=True)
 
-    user_to_update = User(id=UUID("123e4567-e89b-12d3-a456-426614174001"), is_admin=False)
+    user_to_update = User(
+        id=UUID("123e4567-e89b-12d3-a456-426614174001"), is_admin=False
+    )
     db_mock.get.return_value = user_to_update
 
-    response = await update_user_role(UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user)
+    response = await update_user_role(
+        UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user
+    )
 
     assert response == {"message": "User role updated successfully."}
     assert user_to_update.is_admin == True
@@ -222,7 +279,9 @@ async def test_deactivate_user_unauthorized():
     current_user = User(id=UUID("123e4567-e89b-12d3-a456-426614174000"), is_admin=False)
 
     with pytest.raises(HTTPException) as exc_info:
-        await deactivate_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user)
+        await deactivate_user(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db_mock, current_user
+        )
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
@@ -235,7 +294,9 @@ async def test_deactivate_user_not_found(db, mock_user):
     db.execute.return_value = mock_result
 
     with pytest.raises(HTTPException) as exc_info:
-        await deactivate_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
+        await deactivate_user(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user
+        )
 
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
     assert exc_info.value.detail == "User not found."
@@ -251,7 +312,9 @@ async def test_deactivate_user_found(db, mock_user):
     mock_result.scalar_one_or_none.return_value = user_to_deactivate
     db.execute.return_value = mock_result
 
-    result = await deactivate_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
+    result = await deactivate_user(
+        UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user
+    )
 
     assert result == {"message": "User deactivated successfully."}
     assert user_to_deactivate.is_active == False
@@ -265,7 +328,9 @@ async def test_block_user_not_authorized(db, mock_user):
     non_admin_user.is_admin = False
 
     with pytest.raises(HTTPException) as exc_info:
-        await block_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, non_admin_user)
+        await block_user(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db, non_admin_user
+        )
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
@@ -294,7 +359,9 @@ async def test_block_user_success(db, mock_user):
     mock_result.scalar_one_or_none.return_value = user_to_block
     db.execute.return_value = mock_result
 
-    result = await block_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
+    result = await block_user(
+        UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user
+    )
 
     assert result == {"message": "User blocked successfully."}
     assert user_to_block.is_blocked == True
@@ -308,7 +375,9 @@ async def test_unblock_user_not_authorized(db, mock_user):
     non_admin_user.is_admin = False
 
     with pytest.raises(HTTPException) as exc_info:
-        await unblock_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, non_admin_user)
+        await unblock_user(
+            UUID("123e4567-e89b-12d3-a456-426614174001"), db, non_admin_user
+        )
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     assert exc_info.value.detail == "You are not authorized to perform this action."
@@ -337,7 +406,9 @@ async def test_unblock_user_success(db, mock_user):
     mock_result.scalar_one_or_none.return_value = user_to_unblock
     db.execute.return_value = mock_result
 
-    result = await unblock_user(UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user)
+    result = await unblock_user(
+        UUID("123e4567-e89b-12d3-a456-426614174001"), db, mock_user
+    )
 
     assert result == {"message": "User unblocked successfully."}
     assert user_to_unblock.is_blocked == False

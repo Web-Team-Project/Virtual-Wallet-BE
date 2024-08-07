@@ -3,16 +3,16 @@ from fastapi.security import OAuth2AuthorizationCodeBearer
 from httpx import AsyncClient
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+
 from app.core.config import get_settings
 from app.services.common.utils import create_access_token
 from app.services.crud.user import create_user
-
 
 settings = get_settings()
 
 oauth2_scheme = OAuth2AuthorizationCodeBearer(
     authorizationUrl="https://accounts.google.com/o/oauth2/v2/auth",
-    tokenUrl="https://oauth2.googleapis.com/token"
+    tokenUrl="https://oauth2.googleapis.com/token",
 )
 
 
@@ -40,8 +40,10 @@ async def auth_callback(request: Request):
     """
     code = request.query_params.get("code")
     if not code:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Authorization code not found.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization code not found.",
+        )
 
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
@@ -56,8 +58,9 @@ async def auth_callback(request: Request):
         token_json = token_response.json()
 
     if "error" in token_json:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=token_json["error"])
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=token_json["error"]
+        )
 
     access_token = token_json["access_token"]
     userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -67,8 +70,9 @@ async def auth_callback(request: Request):
         userinfo = userinfo_response.json()
 
     if "error" in userinfo:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=userinfo["error"])
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=userinfo["error"]
+        )
 
     await create_user(userinfo)
 

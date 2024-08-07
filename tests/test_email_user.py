@@ -1,13 +1,20 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.crud.auth_email import authenticate_user, register_with_email, verify_email, create_new_user, login, \
-    _map_user
+from uuid import uuid4
+
+import pytest
 from app.schemas.email_user import EmailUserCreate, LoginRequest
+from app.services.crud.auth_email import (
+    _map_user,
+    authenticate_user,
+    create_new_user,
+    login,
+    register_with_email,
+    verify_email,
+)
 from app.sql_app.models.models import User
-from itsdangerous import SignatureExpired, BadSignature
-from uuid import UUID, uuid4
+from fastapi import HTTPException, status
+from itsdangerous import BadSignature, SignatureExpired
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
@@ -30,8 +37,10 @@ async def test_authenticate_user_with_valid_credentials(db, mock_user):
     mock_pwd_context = MagicMock()
     mock_pwd_context.verify = AsyncMock(return_value=True)
 
-    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=mock_user)), \
-         patch("app.services.crud.auth_email.pwd_context", new=mock_pwd_context):
+    with patch(
+        "app.services.crud.auth_email.get_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ), patch("app.services.crud.auth_email.pwd_context", new=mock_pwd_context):
         user = await authenticate_user(db, "user@example.com", "password")
 
     assert user == mock_user
@@ -44,19 +53,25 @@ async def test_authenticate_user_with_unverified_email(db, mock_user):
     with patch("app.services.crud.auth_email.pwd_context") as mock_pwd_context:
         mock_pwd_context.verify.return_value = True
 
-        with patch("app.services.crud.auth_email.get_user_by_email") as mock_get_user_by_email:
+        with patch(
+            "app.services.crud.auth_email.get_user_by_email"
+        ) as mock_get_user_by_email:
             mock_get_user_by_email.return_value = mock_user
 
             with pytest.raises(HTTPException) as excinfo:
                 await authenticate_user(db, "user@example.com", "password")
 
             assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
-            assert excinfo.value.detail == "Email not verified. Please verify your email."
+            assert (
+                excinfo.value.detail == "Email not verified. Please verify your email."
+            )
 
 
 @pytest.mark.asyncio
 async def test_register_with_email_new_user(db):
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None))
+    )
 
     email = "user@example.com"
     hashed_password = "hashed_password"
@@ -65,9 +80,13 @@ async def test_register_with_email_new_user(db):
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
 
-    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=None)), \
-         patch("app.services.crud.auth_email.generate_verification_token", new=MagicMock(return_value="dummy_token")), \
-         patch("app.services.crud.auth_email.send_verification_email", new=MagicMock()):
+    with patch(
+        "app.services.crud.auth_email.get_user_by_email",
+        new=AsyncMock(return_value=None),
+    ), patch(
+        "app.services.crud.auth_email.generate_verification_token",
+        new=MagicMock(return_value="dummy_token"),
+    ), patch("app.services.crud.auth_email.send_verification_email", new=MagicMock()):
         result = await register_with_email(email, hashed_password, db)
 
     db.add.assert_called_once()
@@ -79,7 +98,9 @@ async def test_register_with_email_new_user(db):
 
 @pytest.mark.asyncio
 async def test_register_with_email_existing_user(db, mock_user):
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user)))
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user))
+    )
 
     email = "user@example.com"
     hashed_password = "hashed_password"
@@ -95,7 +116,9 @@ async def test_register_with_email_existing_user(db, mock_user):
 async def test_verify_email_with_valid_token(db, mock_user):
     mock_user.verification_token = "valid_token"
 
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user)))
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=mock_user))
+    )
 
     token = "valid_token"
     email = "user@example.com"
@@ -103,8 +126,13 @@ async def test_verify_email_with_valid_token(db, mock_user):
     mock_serializer = MagicMock()
     mock_serializer.loads = MagicMock(return_value=email)
 
-    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=mock_user)), \
-         patch("app.services.crud.auth_email.URLSafeTimedSerializer", return_value=mock_serializer):
+    with patch(
+        "app.services.crud.auth_email.get_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ), patch(
+        "app.services.crud.auth_email.URLSafeTimedSerializer",
+        return_value=mock_serializer,
+    ):
         result = await verify_email(token, db)
 
     db.commit.assert_called_once()
@@ -122,13 +150,16 @@ async def test_verify_email_with_invalid_token(db):
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == "Invalid verification link."
 
+
 @pytest.mark.asyncio
 async def test_verify_email_with_bad_signature_token(db):
     token = "bad_signature_token"
     serializer = MagicMock()
     serializer.loads.side_effect = BadSignature("Invalid token")
 
-    with patch("app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer):
+    with patch(
+        "app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer
+    ):
         with pytest.raises(HTTPException) as excinfo:
             await verify_email(token, db)
 
@@ -142,7 +173,9 @@ async def test_verify_email_with_expired_token(db):
     serializer = MagicMock()
     serializer.loads.side_effect = SignatureExpired("Token expired")
 
-    with patch("app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer):
+    with patch(
+        "app.services.crud.auth_email.URLSafeTimedSerializer", return_value=serializer
+    ):
         with pytest.raises(HTTPException) as excinfo:
             await verify_email(token, db)
 
@@ -155,8 +188,10 @@ async def test_authenticate_user_with_invalid_password(db, mock_user):
     mock_pwd_context = MagicMock()
     mock_pwd_context.verify = MagicMock(return_value=False)
 
-    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=mock_user)), \
-            patch("app.services.crud.auth_email.pwd_context", new=mock_pwd_context):
+    with patch(
+        "app.services.crud.auth_email.get_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ), patch("app.services.crud.auth_email.pwd_context", new=mock_pwd_context):
         with pytest.raises(HTTPException) as excinfo:
             await authenticate_user(db, "user@example.com", "wrongpassword")
 
@@ -166,10 +201,15 @@ async def test_authenticate_user_with_invalid_password(db, mock_user):
 
 @pytest.mark.asyncio
 async def test_verify_email_with_no_user(db):
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None))
+    )
 
     token = "valid_token"
-    with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=None)):
+    with patch(
+        "app.services.crud.auth_email.get_user_by_email",
+        new=AsyncMock(return_value=None),
+    ):
         with pytest.raises(HTTPException):
             await verify_email(token, db)
 
@@ -182,11 +222,14 @@ async def test_create_new_user():
         email="user@example.com",
         hashed_password="password",
         given_name="John",
-        family_name="Doe"
+        family_name="Doe",
     )
 
     mock_user = {"email": user_data.email}
-    with patch("app.services.crud.auth_email.register_with_email", new=AsyncMock(return_value=mock_user)):
+    with patch(
+        "app.services.crud.auth_email.register_with_email",
+        new=AsyncMock(return_value=mock_user),
+    ):
         result = await create_new_user(user_data, db)
 
     assert result["email"] == user_data.email
@@ -202,9 +245,16 @@ async def test_login_with_valid_credentials(db, mock_user):
     request = MagicMock()
     request.session = {}
 
-    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)), \
-         patch("app.services.crud.auth_email.create_access_token", new=MagicMock(return_value="dummy_token")), \
-         patch("app.services.crud.auth_email._map_user", new=MagicMock(return_value={"email": "user@example.com", "sub": "user_id"})):
+    with patch(
+        "app.services.crud.auth_email.authenticate_user",
+        new=AsyncMock(return_value=mock_user),
+    ), patch(
+        "app.services.crud.auth_email.create_access_token",
+        new=MagicMock(return_value="dummy_token"),
+    ), patch(
+        "app.services.crud.auth_email._map_user",
+        new=MagicMock(return_value={"email": "user@example.com", "sub": "user_id"}),
+    ):
         result = await login(login_request, db)
 
     assert result.body.decode() == '{"message":"Successfully logged in."}'
@@ -216,7 +266,10 @@ async def test_login_with_invalid_credentials(db):
     login_request = LoginRequest(email="user@example.com", password="wrongpassword")
     request = MagicMock()
 
-    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=None)):
+    with patch(
+        "app.services.crud.auth_email.authenticate_user",
+        new=AsyncMock(return_value=None),
+    ):
         with pytest.raises(HTTPException) as excinfo:
             await login(login_request, db)
 
@@ -226,12 +279,19 @@ async def test_login_with_invalid_credentials(db):
 @pytest.mark.asyncio
 async def test_verify_email_with_no_user(db):
     token = "valid_token"
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None)))
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=AsyncMock(return_value=None))
+    )
 
-    with patch("app.services.crud.auth_email.URLSafeTimedSerializer") as mock_serializer:
+    with patch(
+        "app.services.crud.auth_email.URLSafeTimedSerializer"
+    ) as mock_serializer:
         mock_serializer().loads = MagicMock(return_value="user@example.com")
 
-        with patch("app.services.crud.auth_email.get_user_by_email", new=AsyncMock(return_value=None)):
+        with patch(
+            "app.services.crud.auth_email.get_user_by_email",
+            new=AsyncMock(return_value=None),
+        ):
             with pytest.raises(HTTPException) as excinfo:
                 await verify_email(token, db)
 
@@ -249,7 +309,10 @@ async def test_login_with_unverified_email(db, mock_user):
     request = MagicMock()
     request.session = {}
 
-    with patch("app.services.crud.auth_email.authenticate_user", new=AsyncMock(return_value=mock_user)):
+    with patch(
+        "app.services.crud.auth_email.authenticate_user",
+        new=AsyncMock(return_value=mock_user),
+    ):
         with pytest.raises(HTTPException) as excinfo:
             await login(login_request, db)
 
@@ -259,7 +322,12 @@ async def test_login_with_unverified_email(db, mock_user):
 
 def test_map_user():
     user_id = uuid4()
-    user = User(id=user_id, email="user@example.com", hashed_password="hashed_password", email_verified=True)
+    user = User(
+        id=user_id,
+        email="user@example.com",
+        hashed_password="hashed_password",
+        email_verified=True,
+    )
     mapped_user = _map_user(user)
 
     assert mapped_user["id"] == str(user.id)

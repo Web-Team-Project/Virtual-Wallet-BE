@@ -1,6 +1,5 @@
 from functools import lru_cache
-from typing import List, Optional, Union
-from pydantic import field_validator, AnyHttpUrl
+from typing import Optional
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 

@@ -1,22 +1,26 @@
 """
 Boot FastApi app
 """
+
+from contextlib import asynccontextmanager
 from urllib.parse import urljoin
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from contextlib import asynccontextmanager
-from app.sql_app.database import get_db
+
 from app.api.api_v1.api import api_router
 from app.core.config import get_settings
 from app.services.crud.recurring_transaction import process_recurring_transactions
-
+from app.sql_app.database import get_db
 
 SECRET_KEY = "supersecretkey"
-CORS = ["http://localhost:3000",
-        "https://virtual-wallet-87bx.onrender.com",
-        "https://terrawallet-fe.onrender.com"]
+CORS = [
+    "http://localhost:3000",
+    "https://virtual-wallet-87bx.onrender.com",
+    "https://terrawallet-fe.onrender.com",
+]
 
 
 def _setup_cors(p_app: FastAPI) -> None:
@@ -46,6 +50,7 @@ async def scheduled_task():
         finally:
             await db.close()
 
+
 scheduler.add_job(scheduled_task, "interval", minutes=10)
 
 
@@ -64,7 +69,7 @@ def _create_app() -> FastAPI:
         openapi_url=urljoin(get_settings().API_V1_STR, "openapi.json"),
         version=get_settings().VERSION,
         docs_url="/swagger",
-        lifespan=lifespan
+        lifespan=lifespan,
     )
     app_.include_router(
         api_router,

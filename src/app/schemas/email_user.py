@@ -1,6 +1,8 @@
 from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel, EmailStr, Field
+
 from app.schemas.card import Card
 from app.schemas.category import Category
 from app.schemas.contact import Contact

@@ -1,10 +1,12 @@
+from uuid import UUID
+
 from fastapi import HTTPException, status
-from app.schemas.card import CardCreate
-from app.sql_app.models.models import Card
-from sqlalchemy import and_, select
+from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from uuid import UUID
+
+from app.schemas.card import CardCreate
+from app.sql_app.models.models import Card
 
 
 async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
@@ -20,14 +22,18 @@ async def create_card(db: AsyncSession, card: CardCreate, user_id: UUID):
     result = await db.execute(select(Card).filter_by(number=card.number))
     existing_card = result.scalar_one_or_none()
     if existing_card is not None:
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, 
-                            detail=f"Card with id {card.number} is taken.")
-    db_card = Card(number=card.number, 
-                   card_holder=card.card_holder, 
-                   exp_date=card.exp_date, 
-                   cvv=card.cvv, 
-                   design=card.design, 
-                   user_id=user_id)
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail=f"Card with id {card.number} is taken.",
+        )
+    db_card = Card(
+        number=card.number,
+        card_holder=card.card_holder,
+        exp_date=card.exp_date,
+        cvv=card.cvv,
+        design=card.design,
+        user_id=user_id,
+    )
     db.add(db_card)
     await db.commit()
     await db.refresh(db_card)
@@ -43,12 +49,16 @@ async def read_card(db: AsyncSession, card_id: UUID, user_id: UUID):
             user_id (UUID): The ID of the user.
         Returns:
             Card: The card object.
-    """	
-    result = await db.execute(select(Card).where(Card.id == card_id, Card.user_id == user_id))
+    """
+    result = await db.execute(
+        select(Card).where(Card.id == card_id, Card.user_id == user_id)
+    )
     db_card = result.scalars().first()
     if db_card is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail=f"Card with id {card_id} not found for user {user_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Card with id {card_id} not found for user {user_id}.",
+        )
     return db_card
 
 
@@ -76,10 +86,14 @@ async def update_card(db: AsyncSession, card_id: UUID, card: CardCreate, user_id
         Returns:
             Card: The updated card object.
     """
-    result = await db.execute(select(Card).where(Card.id == card_id), Card.user_id == user_id)
+    result = await db.execute(
+        select(Card).where(Card.id == card_id), Card.user_id == user_id
+    )
     db_card = result.scalars().first()
     if db_card is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found.")    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Card not found."
+        )
     db_card.number = card.number
     db_card.card_holder = card.card_holder
     db_card.exp_date = card.exp_date
@@ -100,11 +114,14 @@ async def delete_card(db: AsyncSession, card_id: UUID, user_id: UUID):
         Returns:
             dict: A message confirming the deletion.
     """
-    result = await db.execute(select(Card).where(and_(Card.id == card_id, Card.user_id == user_id)))
+    result = await db.execute(
+        select(Card).where(and_(Card.id == card_id, Card.user_id == user_id))
+    )
     db_card = result.scalars().first()
     if db_card is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail="Card not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Card not found."
+        )
     await db.delete(db_card)
     await db.commit()
     return {"message": "Card deleted successfully."}

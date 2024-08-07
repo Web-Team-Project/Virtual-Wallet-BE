@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
 from uuid import UUID
+
+from pydantic import BaseModel
+
 from app.sql_app.models.enumerate import Currency, IntervalType
 
 
@@ -15,7 +17,6 @@ class TransactionBase(BaseModel):
     category_id: UUID
     status: str
 
-    
 
 class TransactionCreate(BaseModel):
     amount: float
@@ -28,6 +29,7 @@ class TransactionCreate(BaseModel):
     class Config:
         from_attributes = True
 
+
 class Transaction(TransactionBase):
     id: UUID
     timestamp: datetime
@@ -35,12 +37,15 @@ class Transaction(TransactionBase):
     class Config:
         from_attributes = True
 
+
 class Category(BaseModel):
     id: UUID
     name: str
 
     class Config:
         from_attributes = True
+
+
 class TransactionView(BaseModel):
     id: UUID
     amount: int
@@ -54,6 +59,7 @@ class TransactionView(BaseModel):
     card_number: str
     recipient_email: str
     category_name: str
+
     class Config:
         from_attributes = True
 

@@ -1,12 +1,13 @@
-from uuid import uuid4
-from fastapi import HTTPException, status
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import ANY, AsyncMock, MagicMock
+from uuid import uuid4
+
 import pytest
 from app.schemas.category import CategoryCreate
 from app.services.crud.category import create_category, delete_category, read_categories
 from app.sql_app.models.models import Category, Transaction
+from fastapi import HTTPException, status
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -14,7 +15,7 @@ async def test_create_category_success():
     db = MagicMock(spec=AsyncSession)
     user_id = str(uuid4())
     category_data = Category(name="Test Category")
-    
+
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
     db.execute = AsyncMock(return_value=mock_result)
@@ -53,10 +54,20 @@ async def test_create_category_already_exists():
 async def test_read_categories():
     db = MagicMock(spec=AsyncSession)
     user_id = str(uuid4())
-    
+
     mock_categories = [
-        Category(id=uuid4(), name="Category 1", user_id=user_id, transactions=[Transaction(), Transaction()]),
-        Category(id=uuid4(), name="Category 2", user_id=user_id, transactions=[Transaction(), Transaction()]),
+        Category(
+            id=uuid4(),
+            name="Category 1",
+            user_id=user_id,
+            transactions=[Transaction(), Transaction()],
+        ),
+        Category(
+            id=uuid4(),
+            name="Category 2",
+            user_id=user_id,
+            transactions=[Transaction(), Transaction()],
+        ),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_categories
@@ -89,7 +100,9 @@ async def test_delete_category_success():
 
     response = await delete_category(db, category_name, user_id)
 
-    expected_query = select(Category).where(and_(Category.name == category_name, Category.user_id == user_id))
+    expected_query = select(Category).where(
+        and_(Category.name == category_name, Category.user_id == user_id)
+    )
     db.execute.assert_awaited_once()
     assert str(db.execute.await_args[0][0]) == str(expected_query)
     db.delete.assert_awaited_once_with(mock_category)
@@ -114,7 +127,9 @@ async def test_delete_category_not_found():
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Category not found."
 
-    expected_query = select(Category).where(and_(Category.name == category_name, Category.user_id == user_id))
+    expected_query = select(Category).where(
+        and_(Category.name == category_name, Category.user_id == user_id)
+    )
     db.execute.assert_awaited_once()
     assert str(db.execute.await_args[0][0]) == str(expected_query)
     db.delete.assert_not_awaited()

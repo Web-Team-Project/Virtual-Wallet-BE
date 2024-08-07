@@ -1,25 +1,36 @@
 from datetime import date
-from uuid import uuid4
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
 import pytest
 from app.schemas.card import CardCreate
 from app.schemas.user import User
-from app.services.crud.card import create_card, delete_card, read_card, update_card, read_all_cards
+from app.services.crud.card import (
+    create_card,
+    delete_card,
+    read_all_cards,
+    read_card,
+    update_card,
+)
 from app.sql_app.models.models import Card
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
 async def test_create_card_success():
     db = MagicMock(spec=AsyncSession)
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
-    
-    card_data = CardCreate(number="1234567890123456", 
-                           card_holder="Test User", 
-                           exp_date="01/24", 
-                           cvv="123", 
-                           design="Design1")
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None))
+    )
+
+    card_data = CardCreate(
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
     user_id = uuid4()
 
     result = await create_card(db, card_data, user_id)
@@ -34,13 +45,17 @@ async def test_create_card_success():
 async def test_create_card_returns_error():
     db = MagicMock(spec=AsyncSession)
     existing_card = MagicMock()
-    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=existing_card)))
-    
-    card_data = CardCreate(number="1234567890123456", 
-                           card_holder="Test User", 
-                           exp_date="01/24", 
-                           cvv="123", 
-                           design="Design1")
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=existing_card))
+    )
+
+    card_data = CardCreate(
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
     user_id = uuid4()
 
     with pytest.raises(HTTPException) as excinfo:
@@ -55,9 +70,15 @@ async def test_read_card_success():
     db = MagicMock(spec=AsyncSession)
     card_id = uuid4()
     user_id = uuid4()
-    mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date="01/24",
-                     cvv="123", design="Design1")
+    mock_card = Card(
+        id=card_id,
+        user_id=user_id,
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = mock_card
@@ -73,7 +94,7 @@ async def test_read_card_not_found():
     db = MagicMock(spec=AsyncSession)
     card_id = uuid4()
     user_id = uuid4()
-    
+
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
     db.execute = AsyncMock(return_value=mock_result)
@@ -82,19 +103,33 @@ async def test_read_card_not_found():
         await read_card(db, card_id, user_id)
 
     assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-    assert excinfo.value.detail == f"Card with id {card_id} not found for user {user_id}."
+    assert (
+        excinfo.value.detail == f"Card with id {card_id} not found for user {user_id}."
+    )
 
 
 @pytest.mark.asyncio
 async def test_read_all_cards_success():
     db = MagicMock(spec=AsyncSession)
     user_id = uuid4()
-    card1 = Card(id=uuid4(), user_id=user_id, number="1234567890123456",
-                 card_holder="Test User 1", exp_date="01/24",
-                 cvv="123", design="Design1")
-    card2 = Card(id=uuid4(), user_id=user_id, number="6543210987654321",
-                 card_holder="Test User 2", exp_date="01/25",
-                 cvv="321", design="Design2")
+    card1 = Card(
+        id=uuid4(),
+        user_id=user_id,
+        number="1234567890123456",
+        card_holder="Test User 1",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
+    card2 = Card(
+        id=uuid4(),
+        user_id=user_id,
+        number="6543210987654321",
+        card_holder="Test User 2",
+        exp_date="01/25",
+        cvv="321",
+        design="Design2",
+    )
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [card1, card2]
     db.execute = AsyncMock(return_value=mock_result)
@@ -111,24 +146,34 @@ async def test_update_card_success():
     db = MagicMock(spec=AsyncSession)
     card_id = uuid4()
     user_id = uuid4()
-    mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date="01/24",
-                     cvv="123", design="Design1")
-    updated_card_data = CardCreate(number="6543210987654321",
-                                   card_holder="Updated User",
-                                   exp_date="01/24",
-                                   cvv="321",
-                                   design="Design2")
+    mock_card = Card(
+        id=card_id,
+        user_id=user_id,
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
+    updated_card_data = CardCreate(
+        number="6543210987654321",
+        card_holder="Updated User",
+        exp_date="01/24",
+        cvv="321",
+        design="Design2",
+    )
 
-    current_user = User(id=user_id,
-                        sub="user_sub",
-                        name="Test User",
-                        given_name="Test",
-                        family_name="User",
-                        picture="http://example.com/picture.jpg",
-                        email="testuser@example.com",
-                        email_verified=True,
-                        locale="en")
+    current_user = User(
+        id=user_id,
+        sub="user_sub",
+        name="Test User",
+        given_name="Test",
+        family_name="User",
+        picture="http://example.com/picture.jpg",
+        email="testuser@example.com",
+        email_verified=True,
+        locale="en",
+    )
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = mock_card
@@ -148,21 +193,25 @@ async def test_update_card_not_found():
     db = MagicMock(spec=AsyncSession)
     card_id = uuid4()
     user_id = uuid4()
-    updated_card_data = CardCreate(number="6543210987654321",
-                                   card_holder="Updated User",
-                                   exp_date="01/24",
-                                   cvv="321",
-                                   design="Design2")
+    updated_card_data = CardCreate(
+        number="6543210987654321",
+        card_holder="Updated User",
+        exp_date="01/24",
+        cvv="321",
+        design="Design2",
+    )
 
-    current_user = User(id=user_id,
-                        sub="user_sub",
-                        name="Test User",
-                        given_name="Test",
-                        family_name="User",
-                        picture="http://example.com/picture.jpg",
-                        email="testuser@example.com",
-                        email_verified=True,
-                        locale="en")
+    current_user = User(
+        id=user_id,
+        sub="user_sub",
+        name="Test User",
+        given_name="Test",
+        family_name="User",
+        picture="http://example.com/picture.jpg",
+        email="testuser@example.com",
+        email_verified=True,
+        locale="en",
+    )
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
@@ -181,14 +230,22 @@ async def test_update_card_unauthorized():
     card_id = uuid4()
     card_owner_id = uuid4()
     current_user_id = uuid4()
-    mock_card = Card(id=card_id, user_id=card_owner_id, number="1234567890123456",
-                     card_holder="Test User", exp_date=date(2024, 11, 1),
-                     cvv="123", design="Design1")
-    updated_card_data = CardCreate(number="6543210987654321",
-                                   card_holder="Updated User",
-                                   exp_date="01/24",
-                                   cvv="321",
-                                   design="Design2")
+    mock_card = Card(
+        id=card_id,
+        user_id=card_owner_id,
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date=date(2024, 11, 1),
+        cvv="123",
+        design="Design1",
+    )
+    updated_card_data = CardCreate(
+        number="6543210987654321",
+        card_holder="Updated User",
+        exp_date="01/24",
+        cvv="321",
+        design="Design2",
+    )
 
 
 @pytest.mark.asyncio
@@ -196,9 +253,15 @@ async def test_delete_card_success():
     db = MagicMock(spec=AsyncSession)
     card_id = uuid4()
     user_id = uuid4()
-    mock_card = Card(id=card_id, user_id=user_id, number="1234567890123456",
-                     card_holder="Test User", exp_date="01/24",
-                     cvv="123", design="Design1")
+    mock_card = Card(
+        id=card_id,
+        user_id=user_id,
+        number="1234567890123456",
+        card_holder="Test User",
+        exp_date="01/24",
+        cvv="123",
+        design="Design1",
+    )
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = mock_card

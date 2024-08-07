@@ -4,13 +4,13 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
+
 from app.schemas.email_user import EmailUserCreate, LoginRequest
 from app.schemas.user import UserBase
-from app.services.common.utils import generate_verification_token, create_access_token
+from app.services.common.utils import create_access_token, generate_verification_token
 from app.services.common.verification import send_verification_email
 from app.services.crud.user import get_user_by_email
 from app.sql_app.models.models import User
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -28,11 +28,15 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     """
     user = await get_user_by_email(email, db)
     if not user or not pwd_context.verify(password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Incorrect email or password.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password.",
+        )
     if not user.email_verified:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Email not verified. Please verify your email.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not verified. Please verify your email.",
+        )
     return user
 
 
@@ -49,7 +53,9 @@ async def register_with_email(email: str, hashed_password: str, db: AsyncSession
     """
     user = await get_user_by_email(email, db)
     if user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists."
+        )
 
     token = generate_verification_token(email)
     user = User(email=email, hashed_password=hashed_password, verification_token=token)
@@ -57,7 +63,9 @@ async def register_with_email(email: str, hashed_password: str, db: AsyncSession
     await db.commit()
     await db.refresh(user)
 
-    verification_link = f"https://virtual-wallet-87bx.onrender.com/api/v1/verify?token={token}"
+    verification_link = (
+        f"https://virtual-wallet-87bx.onrender.com/api/v1/verify?token={token}"
+    )
     send_verification_email(user.email, verification_link)
 
     return {
@@ -79,15 +87,19 @@ async def verify_email(token: str, db: AsyncSession):
     try:
         email = serializer.loads(token, salt="email-verification-salt")
     except SignatureExpired:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Verification link expired.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Verification link expired."
+        )
     except BadSignature:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid verification link.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification link."
+        )
     user = await get_user_by_email(email, db)
     if not user or user.verification_token != token:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Invalid verification token.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token.",
+        )
     user.email_verified = True
     user.verification_token = None
     await db.commit()
@@ -127,7 +139,7 @@ async def login(login_request: LoginRequest, db: AsyncSession):
     if not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email not verified. Please verify your email."
+            detail="Email not verified. Please verify your email.",
         )
     current_user = _map_user(user)
     jwt_token = create_access_token(data=current_user)

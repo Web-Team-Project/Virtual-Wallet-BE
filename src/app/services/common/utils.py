@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Callable, Any
+from typing import Any, Callable
+
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from itsdangerous import URLSafeTimedSerializer
@@ -8,10 +9,11 @@ from jose import jwt
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from app.sql_app.database import engine
 from app.sql_app.models.models import User
-from .custom_response import WebErrorResponse
 
+from .custom_response import WebErrorResponse
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +58,26 @@ async def get_current_user(request: Request) -> User:
     """
     user = request.cookies.get("user")
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="User not authenticated.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated."
+        )
     current_user = decode_access_token(user)
     async with AsyncSession(engine) as session:
-        result = await session.execute(select(User).where(User.email == current_user["email"]))
+        result = await session.execute(
+            select(User).where(User.email == current_user["email"])
+        )
         db_user = result.scalars().first()
         if db_user:
             if db_user.email_verified is None or not db_user.email_verified:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail="Email not verified.")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Email not verified.",
+                )
             if not db_user.is_active:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail="Account is deactivated.")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Account is deactivated.",
+                )
             current_user["id"] = str(db_user.id)
             current_user["is_admin"] = db_user.is_admin
     return User(**current_user)

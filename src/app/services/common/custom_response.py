@@ -1,6 +1,7 @@
-from fastapi.responses import JSONResponse
 from typing import Any
+
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 
 class WebErrorResponse(JSONResponse):
