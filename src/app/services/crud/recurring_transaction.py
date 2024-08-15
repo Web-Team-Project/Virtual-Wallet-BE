@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.transaction import RecurringTransactionCreate, TransactionCreate
 from app.services.crud.transaction import create_transaction
-from app.sql_app.models.enumerate import IntervalType
+from app.sql_app.models.enums import IntervalType
 from app.sql_app.models.models import (
     Card,
     Category,

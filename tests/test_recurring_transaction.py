@@ -12,7 +12,7 @@ from app.services.crud.recurring_transaction import (
     get_recurring_transactions,
     process_recurring_transactions,
 )
-from app.sql_app.models.enumerate import IntervalType
+from app.sql_app.models.enums import IntervalType
 from app.sql_app.models.models import Card, Category, RecurringTransaction, User, Wallet
 from fastapi import HTTPException, status
 from pydantic import ValidationError

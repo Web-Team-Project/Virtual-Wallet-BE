@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.sql_app.models.enumerate import Currency, IntervalType
+from app.sql_app.models.enums import Currency, IntervalType
 
 
 class TransactionBase(BaseModel):

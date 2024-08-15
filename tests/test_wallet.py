@@ -9,7 +9,7 @@ from app.services.crud.wallet import (
     create_wallet,
     withdraw_funds_from_wallet,
 )
-from app.sql_app.models.enumerate import Currency
+from app.sql_app.models.enums import Currency
 from app.sql_app.models.models import User, Wallet
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession

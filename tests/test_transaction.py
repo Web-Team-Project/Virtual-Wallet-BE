@@ -18,7 +18,7 @@ from app.services.crud.transaction import (
     get_transactions_by_user_id,
     reject_transaction,
 )
-from app.sql_app.models.enumerate import Status
+from app.sql_app.models.enums import Status
 from app.sql_app.models.models import Card, Category, Transaction, User, Wallet
 from fastapi import HTTPException, status
 from sqlalchemy import select, update

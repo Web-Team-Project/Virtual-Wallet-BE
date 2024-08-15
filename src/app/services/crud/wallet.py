@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.sql_app.models.enumerate import Currency
+from app.sql_app.models.enums import Currency
 from app.sql_app.models.models import User, Wallet
 
 

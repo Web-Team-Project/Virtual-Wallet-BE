@@ -13,7 +13,7 @@ from app.schemas.transaction import (
     TransactionList,
     TransactionView,
 )
-from app.sql_app.models.enumerate import Status
+from app.sql_app.models.enums import Status
 from app.sql_app.models.models import Card, Category, Transaction, User, Wallet
 
 
