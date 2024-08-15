@@ -26,7 +26,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-database_url = os.getenv("OLD_DATABASE_URL")
+database_url = os.getenv("DATABASE_URL")
 
 
 config.set_main_option("sqlalchemy.url", database_url)
