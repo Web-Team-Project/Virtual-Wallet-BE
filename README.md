@@ -1,5 +1,6 @@
-# terraWallet
-terraWallet is a virtual wallet web application designed to put you in control of your finances. You can easily send and receive money and deposit funds from your credit or debit card. terraWallet allows users to effortlessly monitor their incoming and outgoing transactions and manage their wallets and cards, providing detailed financial information to help you get the best experience.
+<h1 align="center"><img src="https://imgur.com/CVzEcBx.png" width="128"><br/>terraWallet</h1>
+
+**terraWallet** is a virtual wallet web application designed to put you in control of your finances. You can easily send and receive money and deposit funds from your credit or debit card. terraWallet allows users to effortlessly monitor their incoming and outgoing transactions and manage their wallets and cards, providing detailed financial information to help you get the best experience.
 
 The project is developed using the FastAPI framework for the backend, along with SQLAlchemy for managing the database. We've adhered to the original FastAPI structure to ensure optimal performance and maintainability. We've also used third-party APIs to facilitate the authentication process.
 
@@ -19,7 +20,7 @@ The frontend repository can be found [here](https://github.com/Web-Team-Project/
 - **Recurring Transactions**: Users can set up recurring transactions that will be automatically executed at a specified interval. They are handled by using cron jobs.
 
 ## Technologies Used
-- **Backend**: FastAPI, Asynchronous, SQLAlchemy, PostgreSQL, Pydantic, Pytest, JWT, Google OAuth, APScheduler, Twilio, SMTP, CI pipeline, Docker
+- **Backend**: FastAPI, Asynchronous, Alembic, SQLAlchemy, PostgreSQL, Pydantic, Pytest, JWT, Google OAuth, APScheduler, Twilio, SMTP, CI pipeline, Docker
 - **Frontend**: Next.js, Tailwind CSS, TypeScript
 
 ## Hosted On
